@@ -34,6 +34,10 @@ html, body, ul, ol, p, pre, table, td, img {
 	margin: 0;
 	padding: 0;
 	border: 0;
+	/* linux cannot render fonts without help */
+	text-rendering: optimizeLegibility;
+	font-variant-ligatures: common-ligatures;
+	font-kerning: normal;
 }
 
 *:focus {
@@ -44,8 +48,12 @@ strong, b, .boardname, .caption, .subject, .postblock, .postername, .teampost, .
 	font-weight: bold;
 }
 
-em, i, .omittedposts, .notice {
+em, i, .omittedposts, .notice, .slogan {
 	font-style: italic;
+}
+
+.slogan {
+	font-size: 1.2em;
 }
 
 hr {
@@ -232,7 +240,7 @@ ul.rules {
 }
 
 .thread {
-	overflow: hidden;
+	overflow: auto;
 }
 
 .thread_reply {
@@ -249,7 +257,7 @@ ul.rules {
 	border-right: 1px solid #BFB5A1;
 	border-bottom: 1px solid #BFB5A1;
 	margin-bottom: 0.5em;
-	overflow: hidden;
+	overflow: auto;
 }
 
 .post_new {
