@@ -24,6 +24,7 @@ use constant BOARD_IDENT => 'board';
 #use constant BOARD_NAME => '&#120176;&#120215;&#120211;&#120216;&#120217;&#120200;&#120205;&#120198;&#120211;';
 use constant BOARD_NAME => 'Ernstchan';
 use constant BOARD_DESC => 'Gesch&auml;ft wie &uuml;blich';
+#use constant STYLESHEET => "/static/css/[board].css";	# additional board specific styles
 use constant SHOWTITLETXT => 1;				# Show TITLE at top (1: yes  0: no)
 use constant SHOWTITLEIMG => 0;				# Show image at top (0: no, 1: single, 2: rotating)
 use constant TITLEIMG => 'title.jpg';			# Title image (point to a script file if rotating)

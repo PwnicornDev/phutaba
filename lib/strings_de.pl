@@ -101,7 +101,7 @@ use constant S_MANASAVE =>
 use constant S_MANASUB =>
   'Los';          # Defines name for submit button in Manager Mode
 
-use constant S_NOTAGS => '<p>Formatierung nur mit HTML-Tags. Keine Parser-Verarbeitung.</p>'
+use constant S_NOTAGS => 'Formatierung nur mit HTML-Tags. Keine Parser-Verarbeitung.'
   ;               # Prints message on Management Board
 
 use constant S_POSTASADMIN => 'Administrationskennung am Post anzeigen';

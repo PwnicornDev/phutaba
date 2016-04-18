@@ -22,9 +22,8 @@
 	margin-left: 0em!important;
 }
 
-pre {
-	white-space: pre-wrap;
-	word-wrap: break-word;
+.thread_reply  {
+	float: none!important;
 }
 
 }
