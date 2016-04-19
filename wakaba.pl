@@ -670,7 +670,7 @@ sub output_page {
 	$output =~ s/^\s+\n//mg;
 
 	if ($isAdmin) {
-		my $exec_time = debug_exec_time('output', 1);
+		my $exec_time = debug_exec_time('template', 1);
 		$output =~ s!(</body>\n</html>)$!${exec_time}$1!;
 	}
 
@@ -725,7 +725,7 @@ sub show_thread {
 		$$row{comment} = resolve_reflinks($$row{comment});
 
 		## temporary debug code for testing sub count_lines()
-		$$row{comment} .= debug_line_count($$row{comment}) if ($isAdmin);
+		#$$row{comment} .= debug_line_count($$row{comment}) if ($isAdmin);
 
         push( @thread, $row );
     }
@@ -757,7 +757,7 @@ sub show_thread {
 	$output =~ s/^\s+\n//mg;
 
 	if ($isAdmin) {
-		my $exec_time = debug_exec_time('output', 1);
+		my $exec_time = debug_exec_time('template', 1);
 		$output =~ s!(</body>\n</html>)$!${exec_time}$1!;
 	}
 
@@ -3146,11 +3146,11 @@ sub debug_exec_time {
 	return unless($has_timer);
 
 	my $lap = Time::HiRes::gettimeofday();
-	$has_timer_output .= sprintf("%.3f %s ", $lap - $has_timer, $label);
+	$has_timer_output .= sprintf("%.1f ms (%s) ", ($lap - $has_timer) * 1000, $label);
 	$has_timer_output .= "+ " unless ($done);
 
 	if ($done) {
-		$has_timer_output .= sprintf("= %.3f total", $lap - $has_timer_start);
+		$has_timer_output .= sprintf("= %.1f ms (total)", ($lap - $has_timer_start) * 1000);
 		my $result = '<div class="omittedposts">' . $has_timer_output . "</div>\n";
 		return $result;
 	}
