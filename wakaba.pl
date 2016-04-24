@@ -611,7 +611,7 @@ sub output_page {
 			$$post{comment} = resolve_reflinks($$post{comment});
 
 			## temporary debug code for testing sub count_lines()
-			my $debug_comment = $$post{comment};
+			#my $debug_comment = $$post{comment};
 
             my $abbreviation =
               abbreviate_html( $$post{comment}, MAX_LINES_SHOWN,
@@ -623,7 +623,7 @@ sub output_page {
             }
 
 			## temporary debug code for testing sub count_lines()
-			$$post{comment} .= debug_line_count($debug_comment) if ($isAdmin);
+			#$$post{comment} .= debug_line_count($debug_comment) if ($isAdmin);
         }
     }
 
@@ -670,7 +670,7 @@ sub output_page {
 	$output =~ s/^\s+\n//mg;
 
 	if ($isAdmin) {
-		my $exec_time = debug_exec_time('output', 1);
+		my $exec_time = debug_exec_time('template', 1);
 		$output =~ s!(</body>\n</html>)$!${exec_time}$1!;
 	}
 
@@ -725,7 +725,7 @@ sub show_thread {
 		$$row{comment} = resolve_reflinks($$row{comment});
 
 		## temporary debug code for testing sub count_lines()
-		$$row{comment} .= debug_line_count($$row{comment}) if ($isAdmin);
+		#$$row{comment} .= debug_line_count($$row{comment}) if ($isAdmin);
 
         push( @thread, $row );
     }
@@ -757,7 +757,7 @@ sub show_thread {
 	$output =~ s/^\s+\n//mg;
 
 	if ($isAdmin) {
-		my $exec_time = debug_exec_time('output', 1);
+		my $exec_time = debug_exec_time('template', 1);
 		$output =~ s!(</body>\n</html>)$!${exec_time}$1!;
 	}
 
@@ -2381,6 +2381,9 @@ sub make_admin_edit_panel {
 		# add newlines for better readability but remove them on save!
 		$$row{comment} =~ s!(<br />|</p>|</ul>|</li>|</blockquote>)!$1\n!g;
 
+		$$row{comment} =~ s/</&lt;/g;
+		$$row{comment} =~ s/>/&gt;/g;
+
 		$sth->finish(); # record set not finished despite only one record exists
 
 		make_http_header();
@@ -3143,11 +3146,11 @@ sub debug_exec_time {
 	return unless($has_timer);
 
 	my $lap = Time::HiRes::gettimeofday();
-	$has_timer_output .= sprintf("%.4f %s ", $lap - $has_timer, $label);
+	$has_timer_output .= sprintf("%.1f ms (%s) ", ($lap - $has_timer) * 1000, $label);
 	$has_timer_output .= "+ " unless ($done);
 
 	if ($done) {
-		$has_timer_output .= sprintf("= %.4f total", $lap - $has_timer_start);
+		$has_timer_output .= sprintf("= %.1f ms (total)", ($lap - $has_timer_start) * 1000);
 		my $result = '<div class="omittedposts">' . $has_timer_output . "</div>\n";
 		return $result;
 	}

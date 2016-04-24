@@ -3,8 +3,7 @@ function get_cookie(name) {
 		var regexp = new RegExp("(^|;\\s+)" + name + "=(.*?)(;|$)"),
 		hit = regexp.exec(document.cookie);
 		if (hit && hit.length > 2) return unescape(hit[2]);
-		else
-		return '';
+		else return '';
 	}
 }
 
@@ -16,8 +15,6 @@ function set_cookie(name, value, days) {
 	} else expires = "";
 	document.cookie = name + "=" + value + expires + "; path=/";
 }
-
-
 
 function get_password(name) {
 	var pass = get_cookie(name);
@@ -38,8 +35,9 @@ function file_input_change(max) {
 	var total = 0; // total number of file inputs
 	var empty = 0; // number of empty file inputs
 
-	var postfiles = document.getElementById("fileInput"); // table cell id that contains the file inputs and filename spans
-	var inputs = postfiles.getElementsByTagName("input"); // the actual file inputs
+	// contains the file inputs and filename spans
+	var postfiles = document.getElementById("fileInput");
+	var inputs = postfiles.getElementsByTagName("input"); // actual file inputs
 
 	for (i = 0; i < inputs.length; i++) {
 		if (inputs[i].type != 'file') continue;
@@ -50,13 +48,14 @@ function file_input_change(max) {
 		if (inputs[i].value.length == 0) {
 			empty++;
 		} else {
-			if (typeof inputs[i].files == "object" && inputs[i].files.length > 1) total += inputs[i].files.length - 1;
+			if (typeof inputs[i].files == "object" && inputs[i].files.length > 1)
+				total += inputs[i].files.length - 1;
 			inputs[i].style.display = "none";
 		}
 		update_file_label(inputs[i], max);
 	}
 
-	// if there are less than "max" file inputs AND none of them is empty: add a new file input
+	// less than "max" file inputs AND none of them empty: add new file input
 	if (total < max && empty == 0) {
 		var div = document.createElement("div");
 		var input = document.createElement("input");
@@ -106,12 +105,15 @@ function update_file_label(fileinput, max) {
 
 	if (typeof fileinput.files == "object" && fileinput.files.length > 1) {
 		for (var i = 1, l = fileinput.files.length; i < l; i++) {
-			display_file += ' <br />\n&nbsp; ' + format_filename(fileinput.files[i].name);
+			display_file += ' <br />\n&nbsp; '
+				+ format_filename(fileinput.files[i].name);
 		}
 	}
 
-	span.innerHTML = ' <a class="hide" href="javascript:void(0)" onclick="del_file_input(this,' + max + ')">'
-		+ '<img src="/img/icons/cancel.png" width="16" height="16" title="' + msg_remove_file + '" /></a> '
+	span.innerHTML = ' <a class="hide" href="javascript:void(0)"'
+		+ ' onclick="del_file_input(this,' + max + ')">'
+		+ '<img src="/img/icons/cancel.png" width="16" height="16" title="'
+		+ msg_remove_file + '" /></a> '
 		+ display_file + '\n';
 }
 
@@ -162,13 +164,15 @@ function insert(text) {
 	if (typeof document.forms.postform != "object") return;
 	var textarea = document.forms.postform.field4;
 	if (textarea) {
-		if (textarea.createTextRange && textarea.caretPos) { // IE
+		if (textarea.createTextRange && textarea.caretPos) { // very old IE
 			var caretPos = textarea.caretPos;
-			caretPos.text = caretPos.text.charAt(caretPos.text.length - 1) == " " ? text + " " : text;
+			caretPos.text =	caretPos.text.charAt(caretPos.text.length - 1) == " "
+				? text + " " : text;
 		} else if (textarea.setSelectionRange) { // Firefox
 			var start = textarea.selectionStart,
-			end = textarea.selectionEnd;
-			textarea.value = textarea.value.substr(0, start) + text + textarea.value.substr(end);
+				end = textarea.selectionEnd;
+			textarea.value = textarea.value.substr(0, start)
+				+ text + textarea.value.substr(end);
 			textarea.setSelectionRange(start + text.length, start + text.length);
 		} else {
 			textarea.value += text + " ";
@@ -215,14 +219,14 @@ function expand_image(element, org_width, org_height, thumb_width, thumb_height,
 
 function set_inputs(id) {
 	with (document.getElementById(id)) {
-		if ((typeof field1 == "object") && (!field1.value)) field1.value = get_cookie("name");
+		if ((typeof field1 == "object") && (!field1.value))
+			field1.value = get_cookie("name");
 		/* if (!field2.value) field2.value = get_cookie("email"); */
 		if (typeof gb2 == "object")	gb2[1].checked = (get_cookie("gb2") == "thread");
 		if (!password.value) password.value = get_password("password");
 
 		// preload images for post form
 		if (document.images) {
-			new Image().src = "/img/icons/collapse.png";
 			new Image().src = "/img/icons/cancel.png";
 		}		
 	}
