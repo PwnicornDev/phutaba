@@ -25,6 +25,7 @@ use constant POST_VIEW_INCLUDE => q{
 	<label>
 		<input type="checkbox" name="delete" value="<var $num>" />
 		<span class="subject"><var $subject></span>
+		<if SHOW_FLAGS && !$adminpost><var get_post_flag($location)></if>
         <span class="postername"><var $name><if $trip><span class="tripcode"><var $trip></span></if></span>
 		<if $adminpost><span class="teampost">## Team ##</span></if>
 		<span class="date desktop"><var make_date($timestamp, 'phutaba')></span>
@@ -109,9 +110,7 @@ use constant POST_VIEW_INCLUDE => q{
 	</header>
 </if>
 
-<div class="post_body">
-
-<if $files><div class="file_container"></if>
+<if $files><div class="file_container post_body"></if>
 <loop $files>
 
 <if $thumbnail><div class="file"></if>
@@ -161,7 +160,7 @@ use constant POST_VIEW_INCLUDE => q{
 			</div>
 		</if>
 
-		<div id="posttext_<var $num>">
+		<div id="posttext_<var $num>" class="post_body">
 			<var $comment>
 			<if $abbrev>
 				<p class="tldr">
@@ -169,10 +168,9 @@ use constant POST_VIEW_INCLUDE => q{
 				</p>
 			</if>
 		</div>
-		<if $banned><const S_BANNED></if>
+		<if $banned><p class="ban post_body"><const S_BANNED></p></if>
 	</div>
 
-</div>
 </div>
 </div>
 

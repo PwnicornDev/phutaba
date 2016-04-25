@@ -2047,6 +2047,17 @@ sub get_pretty_html($$) {
 	return $text;
 }
 
+sub get_post_flag($) {
+	my ($data) = @_;
+	my @items = split(/<br \/>/, $data);
+	return '' unless (@items);
+
+	# country flag
+	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2');
+	my $flag = '<img src="/img/flags/' . $items[0] . '.PNG" title="' . $items[0] . '" alt="' . $items[0] . '" />';
+	return $flag;
+}
+
 sub get_post_info($$) {
 	my ($data, $board) = @_;
 	my @items = split(/<br \/>/, $data);
