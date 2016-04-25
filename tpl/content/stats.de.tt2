@@ -1,0 +1,18 @@
+[% META
+   title   = 'Statistiken'
+%]
+
+	<header class="title">Zugriffsstatistiken</header>
+	<div class="info">
+		<p>St&uuml;ndlich aktualisiert.</p>
+	</div>
+
+	<header class="title">Tagesstatistik f&uuml;r den aktuellen Monat</header>
+	<div class="info">
+		<p><img src="/img/daily_usage.png" alt="Tagesstatistik" /></p>
+	</div>
+
+	<header class="title">Jahresstatistik</header>
+	<div class="info">
+		<p><img src="/img/usage.png" alt="Jahresstatistik" /></p>
+	</div>

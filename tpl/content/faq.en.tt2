@@ -1,0 +1,82 @@
+[% META
+   title   = 'Frequently asked questions'
+%]
+
+	<header class="title">What is all this?</header>
+	<div class="info">
+		<p>Ernstchan is a German <a href="//en.wikipedia.org/wiki/Imageboard">image board</a>, founded in 2010. Please note that it is neither a source of serious information nor your personal self help club. If you cannot deal with sarcasm and black humor, you should leave right now.</p>
+	</div>
+
+	<header class="title">Where do I register?</header>
+	<div class="info">
+		<p>A classic image board like Ernstchan does not have user accounts. Usually everyone is posting anonymously. If a board has a name field, a tripcode can be entered into that field only.</p>
+	</div>
+
+	<header class="title">Which domain names does Ernstchan have?</header>
+	<div class="info">
+		<p>Ernstchan is reachable via <a href="//ernstchan.com">ernstchan.com</a>, <a href="http://ernstchan.net">ernstchan.net</a> and <a href="http://22chan.net">22chan.net</a>.</p>
+	</div>
+
+	<header class="title">How can I format text in posts?</header>
+	<div class="info">
+		<p>These <a href="//en.wikipedia.org/wiki/BBCode">BBCode</a> tags are available:</p>
+		<table style="float:left; margin-right:1em">
+			<tr>
+				<th>Input</th>
+				<th>Output</th>
+			</tr>
+			<tr>
+				<td>[i]italic[/i]</td>
+				<td><em>italic</em></td>
+			</tr>
+			<tr>
+				<td>[b]bold[/b]</td>
+			 	<td><strong>bold</strong></td>
+			</tr>
+			<tr>
+				<td>[u]underline[/u]</td>
+				<td><ins>underline</ins></td>
+			</tr>
+			<tr>
+				<td>[s]strikethrough[/s]</td>
+				<td><del>strikethrough</del></td>
+			</tr>
+			<tr>
+				<td>[spoiler]spoiler[/spoiler]</td>
+				<td><span class="spoiler">spoiler</span></td>
+			</tr>
+			<tr>
+				<td>[code]code[/code]</td>
+				<td><pre>code</pre></td>
+			</tr>
+		</table>
+		<br />
+		<p>Tags can be nested. Improper nestings are ignored. A tag cannot be opened multiple times, without being closed before. Inside of code blocks no tags will be interpreted.</p>
+		<div style="clear:both;"></div>
+	</div>
+
+	<header class="title">Why do I have to enter a captcha before I can submit my post?</header>
+	<div class="info">
+		<p>In order to prevent spam, IP address ranges from certain countries need to confirm every post with a captcha.</p>
+	</div>
+
+	<header class="title">How can I contact the administrators?</header>
+	<div class="info">
+		<p>For general questions send an email to <a href="mailto:admin@ernstchan.com">admin@ernstchan.com</a>. You can also find us on the <a href="/irc">IRC channel</a>.<br />For reporting illegal content, please email to <a href="mailto:post-abuse@ernstchan.com">post-abuse@ernstchan.com</a>.</p>
+	</div>
+
+	<header class="title">What software is used to run Ernstchan?</header>
+	<div class="info">
+		<p>Ernstchan uses Phutaba, a modification of <a href="http://wakaba.c3.cx/s/web/wakaba_kareha">Wakaba</a>. The current version of Phutaba can be downloaded free on <a href="https://github.com/ernstchan/phutaba">GitHub</a>, it is under no particular license. Some icons made by <a href="http://p.yusukekamiyamane.com/">Yusuke Kamiyamane</a> (CC BY 3.0). <a href="http://www.walterzorn.de/en/tooltip/tooltip_e.htm">JavaScript Tooltips</a> by Walter Zorn (LGPL). Additional functionality provided by <a href="http://jquery.com/">jQuery</a> (MIT License).</p>
+	</div>
+
+	<header class="title">Where can I get your logo?</header>
+	<div class="info">
+		<p style="float:left; margin-right:1em">Please click here:</p>
+		<p><a href="img/logo_gross.png"><img src="img/logo_klein.png" alt="Phutaba logo" /></a></p>
+	</div>
+
+	<header class="title">May I be a moderator?</header>
+	<div class="info">
+		<p>No.</p>
+	</div>

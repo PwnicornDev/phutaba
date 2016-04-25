@@ -1,0 +1,18 @@
+[% META
+   title   = 'Statistics'
+%]
+
+	<header class="title">Access statistics</header>
+	<div class="info">
+		<p>Updated hourly.</p>
+	</div>
+
+	<header class="title">Daily usage current month</header>
+	<div class="info">
+		<p><img src="/img/daily_usage.png" alt="Daily usage" /></p>
+	</div>
+
+	<header class="title">Usage summary last 12 months</header>
+	<div class="info">
+		<p><img src="/img/usage.png" alt="12 months usage" /></p>
+	</div>
