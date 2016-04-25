@@ -31,7 +31,7 @@ use constant DURATION_SELECT_INCLUDE => q{
 use constant NORMAL_HEAD_INCLUDE => q{
 
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<const BOARD_LANG>">
 <head>
 <meta charset="<const CHARSET>" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -105,7 +105,7 @@ use constant NORMAL_HEAD_INCLUDE => q{
 	</ul>
 
 	<ul class="menu right">
-} . include("tpl/nav_pages.html") . q{
+} . include("tpl/nav_pages." . BOARD_LANG . ".html") . q{
 	</ul>
 </nav>
 
@@ -235,7 +235,7 @@ use constant PAGE_TEMPLATE => compile_template(
 	</div>	
 
 	<table>
-	<tbody id="postTableBody">
+	<tbody>
 		<if $admin>
 			<tr><td class="postblock">## Team ##</td>
 			<td><label><input type="checkbox" name="as_staff" value="1" />  <const S_POSTASADMIN></label></td></tr>
@@ -259,13 +259,13 @@ use constant PAGE_TEMPLATE => compile_template(
 	</td></tr>
 
 	<if $image_inp>
-		<tr id="fileUploadField"><td class="postblock"><const S_UPLOADFILE> (max. <const MAX_FILES>)</td>
+		<tr><td class="postblock"><const S_UPLOADFILE> (max. <const MAX_FILES>)</td>
 		<td id="fileInput"><div><input type="file" name="file" onchange="file_input_change(<const MAX_FILES>)" /></div>
 		<if $textonly_inp>[<label><input type="checkbox" name="nofile" value="on" /><const S_NOFILE> ]</label></if>
 		</td></tr>
 	</if>
 
-	<tr id="trgetback"><td class="postblock"><const S_NOKO></td>
+	<tr><td class="postblock"><const S_NOKO></td>
 	<td>
 	<label><input name="gb2" value="board" checked="checked" type="radio" /> <const S_NOKOOFF></label>
 	<label><input name="gb2" value="thread" type="radio" /> <const S_NOKOON></label>
@@ -276,7 +276,7 @@ use constant PAGE_TEMPLATE => compile_template(
 		<td><input type="text" name="captcha" id="captcha" size="10" /> <img alt="" src="/captcha.pl?key=<var get_captcha_key($thread)>&amp;dummy=<var $dummy>&amp;board=<var BOARD_IDENT>" /></td></tr>
 	</if>
 
-	<tr id="passwordField"><td class="postblock"><label for="password"><const S_DELPASS></label></td><td><input type="password" name="password" id="password" /> <const S_DELEXPL></td></tr>
+	<tr><td class="postblock"><label for="password"><const S_DELPASS></label></td><td><input type="password" name="password" id="password" /> <const S_DELEXPL></td></tr>
 	<tr><td colspan="2">
 	<div class="rules">} . include(BOARD_IDENT . "/rules.html") . q{</div></td></tr>
 	</tbody>
@@ -391,7 +391,7 @@ use constant SEARCH_TEMPLATE => compile_template(
 
 	<if $find>
 		<hr />
-		<var S_SEARCHFOUND> <var $count>
+		<const S_SEARCHFOUND> <var $count>
 		<if $count><br /><br /></if>
 	</if>
 
@@ -414,7 +414,7 @@ use constant SINGLE_POST_TEMPLATE => compile_template(q{
 use constant ERROR_HEAD_INCLUDE => q{
 
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<const BOARD_LANG>">
 <head>
 	<meta charset="<const CHARSET>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -438,7 +438,7 @@ use constant ERROR_HEAD_INCLUDE => q{
 	</ul>
 
 	<ul class="menu right">
-} . include("tpl/nav_pages.html") . q{
+} . include("tpl/nav_pages." . BOARD_LANG . ".html") . q{
 	</ul>
 </nav>
 

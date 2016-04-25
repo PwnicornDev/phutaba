@@ -100,7 +100,9 @@ BEGIN {
 	require "site_config.pl";
 	require $board . "/config.pl";
 	require "config_defaults.pl";
-	require "strings_de.pl"; # need some good replacement
+}
+BEGIN {
+	require "strings_" . BOARD_LANG . ".pl";
 	require "wakautils.pl";
 	require "futaba_style.pl";
 	require "captcha.pl";
@@ -2654,8 +2656,8 @@ sub make_error {
     print encode_string(
         ERROR_TEMPLATE->(
             error          => $error,
-            error_page     => 'Fehler aufgetreten',
-            error_title    => 'Fehler aufgetreten'
+            error_page     => S_ERRORTITLE,
+            error_title    => S_ERRORTITLE
         )
     );
 
@@ -2868,7 +2870,7 @@ sub init_database {
 		"locked INTEGER," .     # Thread is locked (applied to parent post only)
 		"sticky INTEGER," .     # Thread is sticky (applied to all posts of a thread)
 		"location TEXT," .      # Geo::IP information for the IP address if available
-		"secure TEXT" .         # Cipher information if posted using SSL connection
+		"secure TEXT" .         # Cipher information if posted using encrypted connection
 
 		");"
     ) or make_error(S_SQLFAIL);
@@ -3146,11 +3148,11 @@ sub debug_exec_time {
 	return unless($has_timer);
 
 	my $lap = Time::HiRes::gettimeofday();
-	$has_timer_output .= sprintf("%.1f ms (%s) ", ($lap - $has_timer) * 1000, $label);
+	$has_timer_output .= sprintf("%.0f ms (%s) ", ($lap - $has_timer) * 1000, $label);
 	$has_timer_output .= "+ " unless ($done);
 
 	if ($done) {
-		$has_timer_output .= sprintf("= %.1f ms (total)", ($lap - $has_timer_start) * 1000);
+		$has_timer_output .= sprintf("= %.0f ms (total)", ($lap - $has_timer_start) * 1000);
 		my $result = '<div class="omittedposts">' . $has_timer_output . "</div>\n";
 		return $result;
 	}

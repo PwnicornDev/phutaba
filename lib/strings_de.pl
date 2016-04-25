@@ -35,7 +35,7 @@ use constant S_ABBR_END => 'ausgeblendet.';
 use constant S_ABBRTEXT1 => '1 weitere Zeile anzeigen';
 use constant S_ABBRTEXT2 => '%d weitere Zeilen anzeigen';
 
-use constant S_BANNED  => '<p class="ban">(User wurde f&uuml;r diesen Post gesperrt)</p>';
+use constant S_BANNED  => '(User wurde f&uuml;r diesen Post gesperrt)';
 
 use constant S_REPDEL => ' ';    # Prints text next to S_DELPICONLY (left)
 use constant S_DELPICONLY =>
@@ -196,6 +196,7 @@ use constant S_SPAMSUBMIT => 'Speichern';
 use constant S_SPAMCLEAR  => 'Leeren';
 use constant S_SPAMRESET  => 'Wiederherstellen';
 
+use constant S_ERRORTITLE   => 'Fehler aufgetreten';
 use constant S_TOOBIG       => 'Die Datei ist zu gro&szlig;.';
 use constant S_TOOBIGORNONE => 'Die Datei ist zu gro&szlig; oder leer.';
 use constant S_REPORTERR    => 'Fehler: Beitrag nicht gefunden.'
