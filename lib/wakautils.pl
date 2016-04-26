@@ -2053,7 +2053,7 @@ sub get_post_flag($) {
 	return '' unless (@items);
 
 	# country flag
-	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2');
+	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2' or $items[0] eq 'v6');
 	my $flag = '<img src="/img/flags/' . $items[0] . '.PNG" title="' . $items[0] . '" alt="' . $items[0] . '" />';
 	return $flag;
 }
@@ -2065,7 +2065,7 @@ sub get_post_info($$) {
 
 	# country flag
 	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2');
-	my $flag = '<img src="/img/flags/' . $items[0] . '.PNG"> ';
+	my $flag = '<img src="/img/flags/' . $items[0] . '.PNG" alt="" /> ';
 
 	if (scalar @items == 1) { # for legacy entries
 		return $flag . $items[0];

@@ -182,7 +182,7 @@ use constant NORMAL_FOOT_INCLUDE => q{
     if ((match = /#([0-9]+)/.exec(document.location.toString()))) highlight(match[1]);
     $j('#postform_submit').click(function() {
         $j('.postarea').block({
-                message: 'Bitte warten &hellip;',
+                message: '<const S_JS_PLEASEWAIT>',
                 css: { fontSize: '2em', color: '#000000', background: '#D7CFC0', border: '1px solid #BFB5A1' },
         });
         setTimeout($j.unblockUI, 5000);
@@ -206,6 +206,8 @@ use constant NORMAL_FOOT_INCLUDE => q{
         var board = '<const BOARD_IDENT>', thread_id = <if $thread><var $thread></if><if !$thread>null</if>;
         var filetypes = '<var get_filetypes()>';
         var msg_remove_file = '<const S_JS_REMOVEFILE>';
+		var msg_show_thread1 = '<const S_JS_SHOWTHREAD1>';
+		var msg_show_thread2 = '<const S_JS_SHOWTHREAD2>';
 </script>
 
 <if ENABLE_WEBSOCKET_NOTIFY && $thread && !$locked><script type="text/javascript" src="/static/js/websock.js"></script></if>
@@ -477,17 +479,17 @@ use constant ERROR_TEMPLATE => compile_template(
 <img src="/img/ernstwurf_schock.png" width="210" height="210" style="float: right;" />
 
 <loop $bans>
- Deine IP-Adresse <strong><var $ip></strong>
- <if $showmask>(Netz <var $network>/<var $setbits>)</if> wurde
- <if $reason>mit folgender Begr&uuml;ndung gesperrt:<br /><strong><var $reason></strong></if>
- <if !$reason>gesperrt.</if>
- <br /><br />Diese Sperrung 
- <if $expires>l&auml;uft am <strong><var make_date($expires, 'phutaba')></strong> ab.</if>
- <if !$expires>gilt f&uuml;r unbestimmte Zeit.</if>
+ <const S_BANNEDIP> <strong><var $ip></strong>
+ <if $showmask>(<const S_BANNEDNET> <var $network>/<var $setbits>)</if>
+ <if $reason><const S_BANNEDREASON><br /><strong><var $reason></strong></if>
+ <if !$reason><const S_BANNEDNOREASON></if>
+ <br /><br />
+ <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, 'phutaba')></if>
+ <if !$expires><const S_BANNEDNOEXPIRE></if>
  <br />
 </loop>
 
- <br />Bitte kontaktiere uns im IRC, wenn du wieder posten willst!
+ <br /><const S_BANNEDCONTACT>
 </div>
 </if>
 

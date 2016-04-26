@@ -70,9 +70,25 @@ use constant S_STICKYTITLE => 'Thread ist angepinnt'
 use constant S_LOCKEDTITLE => 'Thread ist geschlossen'
   ;    # Defines the title of the tiny locked image on a thread if it is locked
 
-# javascript message strings (do not use HTML entities; mask single quotes with \\\')
+# javascript message strings (mask single quotes with \\\')
 use constant S_JS_REMOVEFILE => 'Datei entfernen';
+use constant S_JS_PLEASEWAIT => 'Bitte warten &hellip;';
+use constant S_JS_SHOWTHREAD1 => 'Thread ';
+use constant S_JS_SHOWTHREAD2 => ' einblenden';
 # javascript strings END
+
+# ban page
+use constant S_BANNEDIP => 'Deine IP-Adresse';
+use constant S_BANNEDNET => 'Netz';
+
+use constant S_BANNEDREASON => 'wurde mit folgender Begr&uuml;ndung gesperrt:';
+use constant S_BANNEDNOREASON => 'wurde gesperrt.';
+
+use constant S_BANNEDEXPIRE => 'Diese Sperrung l&auml;uft am <strong>%s</strong> ab.';
+use constant S_BANNEDNOEXPIRE => 'Diese Sperrung gilt f&uuml;r unbestimmte Zeit.';
+
+use constant S_BANNEDCONTACT => 'Bitte kontaktiere uns im IRC, wenn du wieder posten willst!';
+
 
 use constant S_MANARET => 'Zur&uuml;ck'
   ;    # Returns to HTML file instead of PHP--thus no log/SQLDB update occurs
