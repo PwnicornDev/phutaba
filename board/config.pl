@@ -63,14 +63,6 @@ use constant MAX_IMAGE_PIXELS => 50000000000;		# Maximum width*height of image b
 # Captcha
 #use constant CAPTCHA_MODE => 2; # Require captcha for posting (0: never, 1: always, 2: on - except for countries in CAPTCHA_SKIP)
 #use constant CAPTCHA_SKIP => 'DE AT CH'; # Country codes that do not require a captcha for posting if CAPTCHA_MODE is 2
-use constant SQL_CAPTCHA_TABLE => 'captcha';	# Global captcha table for all boards
-use constant CAPTCHA_LIFETIME => 300;			# Captcha lifetime in seconds
-use constant CAPTCHA_SCRIPT => 'captcha.pl';
-use constant CAPTCHA_HEIGHT => 18;
-use constant CAPTCHA_SCRIBBLE => 0.0;
-use constant CAPTCHA_SCALING => 0.15;
-use constant CAPTCHA_ROTATION => 0.3;
-use constant CAPTCHA_SPACING => 2.5;
 
 # Tweaks
 use constant THUMBNAIL_SMALL => 1;				# Thumbnail small images (1: yes, 0: no)
@@ -123,6 +115,7 @@ use constant JS_FILE => 'wakaba.js';			# Location of the js file
 use constant ERRORLOG => '';					# Writes out all errors seen by user, mainly useful for debugging
 use constant CONVERT_COMMAND => 'convert';		# location of the ImageMagick convert command (usually just 'convert', but sometime a full path is needed)
 #use constant CONVERT_COMMAND => '/usr/X11R6/bin/convert';
+#use constant VIDEO_CONVERT_COMMAND => 'avconv';
 
 # Icons for filetypes - file extensions specified here will not be renamed, and will get icons
 # (except for the built-in image formats). These example icons can be found in the extras/ directory.

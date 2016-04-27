@@ -1,10 +1,9 @@
 #!/usr/bin/perl -X
 
+use strict;
+
 use CGI::Carp qw(fatalsToBrowser set_message);
 
-#umask 0022;    # Fix some problems
-
-use strict;
 use CGI;
 use DBI;
 use Net::DNS; # DNSBL request
@@ -96,9 +95,8 @@ BEGIN {
 		print "Content-Type: text/plain\n\nUnknown board.\n";
 		exit;
 	}
-
-	require "site_config.pl";
 	require $board . "/config.pl";
+	require "site_config.pl";
 	require "config_defaults.pl";
 }
 BEGIN {
@@ -845,6 +843,12 @@ sub resolve_reflinks($) {
 		else { '<span class="backreflink"><del>&gt;&gt;'.$1.'</del></span>'; }
 	|ge;
 
+	$comment =~ s|<!--reflink-->&gt;&gt;/([\wäöü]+)/([0-9]+)|
+		my $res = get_board_post($1,$2);
+		if ($res) { '<span class="boardreflink"><a href="'.get_reply_link($$res{num},$$res{parent},$1).'">&gt;&gt;/'.$1.'/'.$2.'</a></span>' }
+		else { '<span class="backreflink"><del>&gt;&gt;/'.$1.'/'.$2.'</del></span>'; }
+	|e for 1 .. 10;
+
 	return $comment;
 }
 
@@ -1502,14 +1506,16 @@ sub format_comment {
 
     # hide >>1 references from the quoting code
     $comment =~ s/&gt;&gt;([0-9\-]+)/&gtgt;$1/g;
+    $comment =~ s|&gt;&gt;(/[\wäöü]+/[0-9\-]+)|&gtgt;$1|g;
 
     my $handler = sub    # mark >>1 references
     {
         my $line = shift;
 
-		# ref-links will be resolved on every page creation to support links to deleted (and also future) posts.
-		# ref-links are marked with a html-comment and checked/generated on every page output.
+		# references are prefixed with a html comment and will be resolved on
+		# every page creation to support links to deleted (and also future) posts
 		$line =~ s/&gtgt;([0-9]+)/<!--reflink-->&gt;&gt;$1/g;
+		$line =~ s|&gtgt;(/[\wäöü]+/[0-9]+)|<!--reflink-->&gt;&gt;$1|g;
 
         return $line;
     };
@@ -1663,7 +1669,7 @@ sub get_post {
     my ($thread) = @_;
     my ($sth);
 
-    $sth = $dbh->prepare( "SELECT * FROM " . SQL_TABLE . " WHERE num=?;" )
+    $sth = $dbh->prepare( "SELECT num, parent FROM " . SQL_TABLE . " WHERE num=?;" )
       or make_error(S_SQLFAIL);
     $sth->execute($thread) or make_error(S_SQLFAIL);
 
@@ -1680,6 +1686,31 @@ sub get_parent_post {
     $sth->execute($thread) or make_error(S_SQLFAIL);
 
     return $sth->fetchrow_hashref();
+}
+
+sub get_board_post {
+	my ($board, $post) = @_;
+	my ($sth, $contents);
+	$board =~ s/[\*<>|?&]//g; # remove special characters
+	$board =~ s/.*[\\\/]//; # remove any leading path
+
+	my $cfgfile = $board . "/config.pl";
+	return 0 unless (-d $board and -f $cfgfile);
+
+	open BOARDCFG, $cfgfile or return 0;
+	$contents .= $_ while (<BOARDCFG>);
+	close BOARDCFG;
+
+	if ($contents =~
+		/^\s*use\s+constant\s+SQL_TABLE\s*=>\s*(?:'|")([^'"]+)(?:'|")\s*;/m ) {
+
+		$sth = $dbh->prepare( "SELECT num, parent FROM " . $1 . " WHERE num=?;" )
+			or make_error(S_SQLFAIL);
+		$sth->execute($post) or make_error(S_SQLFAIL);
+
+		return $sth->fetchrow_hashref();
+	}
+	return 0;
 }
 
 sub sage_count {
@@ -1939,7 +1970,7 @@ sub process_file {
     #		}
     #	}
 
-	my ($info, $info_all) = get_meta_markup($filename, CHARSET);
+	my ($info, $info_all) = get_meta_markup($filename, CHARSET, TOOLTIP_TAGS);
     return ($filename, $md5, $width, $height, $thumbnail, $tn_width, $tn_height, $info, $info_all, $uploadname);
 }
 
@@ -2070,7 +2101,7 @@ sub delete_post {
 
             # remove files from comment and possible replies
             $sth = $dbh->prepare(
-                    "SELECT image,thumbnail FROM " . SQL_TABLE_IMG . " WHERE post=? OR thread=?;" )
+                    "SELECT image, thumbnail FROM " . SQL_TABLE_IMG . " WHERE post=? OR thread=?;" )
               or make_error(S_SQLFAIL);
             $sth->execute( $post, $post ) or make_error(S_SQLFAIL);
 
@@ -2556,7 +2587,7 @@ sub delete_all {
 
     check_password( $admin, ADMIN_PASS );
 
-	unless($go and $ip) # do not allow empty IP (as it would delete anonymized (staff) posts)
+	unless ($go and $ip) # do not allow empty IP (would delete anonymized (staff) posts)
 	{
 		my ($pcount, $tcount);
 
@@ -2715,14 +2746,15 @@ sub get_secure_script_name {
 }
 
 sub expand_filename {
-    my ($filename) = @_;
+    my ($filename, $board) = @_;
 
     return $filename if ( $filename =~ m!^/! );
     return $filename if ( $filename =~ m!^\w+:! );
 
     my ($self_path) = $ENV{SCRIPT_NAME} =~ m!^(.*/)[^/]+$!;
+    $board = get_board_id() unless ($board);
     #return decode_string($self_path, CHARSET) . $filename;
-    return $self_path . get_board_id() . '/' . $filename;
+    return $self_path . $board . '/' . $filename;
 }
 
 sub expand_image_filename { # TODO: remove and replace by expand_filename since load balancing is not used anymore
@@ -2737,10 +2769,10 @@ sub expand_image_filename { # TODO: remove and replace by expand_filename since 
 }
 
 sub get_reply_link {
-    my ($reply, $parent) = @_;
+	my ($reply, $parent, $board) = @_;
 
-	return expand_filename( "thread/" . $parent ) . '#' . $reply if ($parent);
-   	return expand_filename( "thread/" . $reply );
+	return expand_filename("thread/" . $parent, $board) . '#' . $reply if ($parent);
+	return expand_filename("thread/" . $reply, $board);
 }
 
 sub get_page_count {
@@ -3145,7 +3177,7 @@ sub get_decoded_arrayref {
 
 sub debug_exec_time {
 	my ($label, $done) = @_;
-	return unless($has_timer);
+	return unless ($has_timer);
 
 	my $lap = Time::HiRes::gettimeofday();
 	$has_timer_output .= sprintf("%.0f ms (%s) ", ($lap - $has_timer) * 1000, $label);
@@ -3281,7 +3313,7 @@ sub update_files_meta {
 		$$row{image} =~ s!.*/!!;
 		$$row{image} = BOARD_IDENT . '/' . IMG_DIR . $$row{image};
 		if (-e $$row{image}) {
-			($info, $info_all) = get_meta_markup($$row{image}, CHARSET);
+			($info, $info_all) = get_meta_markup($$row{image}, CHARSET, TOOLTIP_TAGS);
 		} else {
 			undef($info);
 			$info_all = "File not found";

@@ -76,48 +76,12 @@ sub get_archive_content {
 }
 
 sub get_meta_markup {
-	my ($file, $charset) = @_;
+	my ($file, $charset, @loc_tags) = @_;
 	my ($exifData, $info, $archive, $markup, @metaOptions);
-	my %options = (	"FileSize" => "Dateigr&ouml;&szlig;e",
-			"FileType" => "Dateityp",
-			"ImageSize" => "Aufl&ouml;sung", 
-			"ModifyDate" => "&Auml;nderungsdatum",
-			"Comment" => "Kommentar", 
-			"Comment-xxx" => "Kommentar (2)",
-			"CreatorTool" => "Erstellungstool", 
-			"Software" => "Software", 
-			"MIMEType" => "Inhaltstyp",
-			"Producer" => "Software", 
-			"Creator" => "Generator", 
-			"Author" => "Autor", 
-			"Subject" => "Betreff", 
-			"PDFVersion" => "PDF-Version", 
-			"PageCount" => "Seiten", 
-			"Title" => "Titel", 
-			"Duration" => "L&auml;nge", 
-			"Artist" => "Interpret", 
-			"AudioBitrate" => "Bitrate", 
-			"ChannelMode" => "Kanalmodus", 
-			"Compression" => "Kompressionsverfahren", 
-			"FrameCount" => "Frames",
-			"Vendor" => "Library-Hersteller",
-			"Album" => "Album",
-			"Genre" => "Genre",
-			"Composer" => "Komponist",
-			"Model" => "Modell",
-			"Maker" => "Hersteller",
-			"OwnerName" => "Besitzer",
-			"CanonModelID" => "Canon-eigene Modellnummer",
-			"UserComment" => "Kommentar (3)",
-			"GPSPosition" => "Position",
-			"Publisher" => "Herausgeber",
-			"Language" => "Sprache",
-			"AudioChannels" => "Audio-Kan&auml;le",
-			"Channels" => "Kan&auml;le",
-			"VideoFrameRate" => "Bildrate",
-	);
+	my %options = @loc_tags;
+
 	foreach (keys %options) {
-		push(@metaOptions, $_);
+		push(@metaOptions, $_) unless (substr($_, 0, 3) eq "LC_");
 	}
 
 	# file names and file sizes inside archives (rar, zip)
@@ -131,10 +95,10 @@ sub get_meta_markup {
 
 	# extract additional information for documents or animation/video/audio or archives
 	if (defined($$exifData{PageCount})) {
-		if ($$exifData{PageCount} eq 1) {
-			$info = "1 Seite";
+		if ($$exifData{PageCount} == 1) {
+			$info = $options{LC_1Page};
 		} else {
-			$info = $$exifData{PageCount} . " Seiten";
+			$info = sprintf($options{LC_Pages}, $$exifData{PageCount});
 		}
 	}
 	if (defined($$exifData{Duration})) {
@@ -159,14 +123,14 @@ sub get_meta_markup {
 		my @filelist = get_archive_content($exifData);
 		my $filecount = @filelist;
 		if ($filecount == 1) {
-			$info = "1 Datei"
+			$info = $options{LC_1File};
 		} else {
-			$info = $filecount . " Dateien";
+			$info = sprintf($options{LC_Files}, $filecount);
 		}
 		splice(@filelist, $max_visible, $filecount - $max_visible,
-			"<em>(" . ($filecount - $max_visible) . " weitere nicht angezeigt)</em>")
+			sprintf($options{LC_Omitted}, ($filecount - $max_visible)))
 			if ($filecount > $max_visible + 1);
-		my $header = "<hr /><strong>Archiv mit $info:</strong>";
+		my $header = "<hr />" . sprintf($options{LC_Archive}, $info);
 		$archive = join("<br />", $header, @filelist);
 	}
 
@@ -189,7 +153,7 @@ sub get_meta_markup {
 		}
 	}
 
-	$$exifData{Codec} = join(", ", @codecs) if (@codecs);
+	$$exifData{$options{LC_Codec}} = join(", ", @codecs) if (@codecs);
 
 	$markup .= "<hr />" if (%$exifData);
 	foreach (sort keys %$exifData) {
@@ -1186,12 +1150,13 @@ sub process_tripcode {
 }
 
 sub make_date {
-    my ( $time, $style, @locdays ) = @_;
+    my ($time, $style, $locdays, $locmonths) = @_;
     my @days   = qw(So Mo Di Mi Do Fr Sa);
     my @months = qw(Jan Feb Mrz Apr Mai Jun Jul Aug Sep Okt Nov Dez);
     my @fullmonths =
       qw(Januar Februar M&auml;rz April Mai Juni Juli August September Oktober November Dezember);
-    @locdays = @days unless (@locdays);
+	@days = split(" ", $locdays) if ($locdays);
+	@fullmonths = split(" ", $locmonths) if ($locmonths);
 
 	if ($style eq "phutaba") {
 		my @ltime = localtime($time);
@@ -1200,7 +1165,7 @@ sub make_date {
 			$ltime[3],
 			$fullmonths[$ltime[4]],
 			$ltime[5] + 1900,
-			$locdays[$ltime[6]],
+			$days[$ltime[6]],
 			$ltime[2], $ltime[1], $ltime[0]
 		);
 	}
@@ -1218,7 +1183,7 @@ sub make_date {
 		my @ltime=localtime($time);
 
 		return sprintf("%02d.%02d.%02d (%s) %02d:%02d",
-		$ltime[3],$ltime[4]+1,$ltime[5]-100,$locdays[$ltime[6]],$ltime[2],$ltime[1]);
+		$ltime[3],$ltime[4]+1,$ltime[5]-100,$days[$ltime[6]],$ltime[2],$ltime[1]);
     }
     elsif ( $style eq "localtime" ) {
         return scalar( localtime($time) );

@@ -13,20 +13,32 @@ use constant DEFAULT_BOARD => 'board';	# default board to redirect to from /
 use constant ABUSE_EMAIL => '';			# Abuse contact e-mail address. Shown in the footer of all pages.
 use constant BASE_URL => '';			# Main URL, no trailing slash e. g. 'https://example.com'
 
-use constant FILEGROUPS => (
+### constants in this section can be overridden in each board's config.pl
+eval "use constant CAPTCHA_MODE => 2" unless (defined &CAPTCHA_MODE);
+eval "use constant CAPTCHA_SKIP => 'DE NO CH AT LI BE LU DK NL'" unless (defined &CAPTCHA_SKIP);
+eval "use constant ENABLE_DNSBL_CHECK => 1" unless (defined &ENABLE_DNSBL_CHECK);
+
+eval "use constant FILEGROUPS => (
 	image => 'Bilder',
 	video => 'Videos',
 	archive => 'Archive',
 	audio => 'Audio',
 	doc => 'Dokumente',
 	other => 'Sonstige',
-);
+)" unless (defined &FILEGROUPS);
+###
+
 use constant GROUPORDER => 'image video archive audio doc other'; # other has to be last
 
-use constant CAPTCHA_MODE => 2;
-use constant CAPTCHA_SKIP => 'DE NO CH AT LI BE LU DK NL';
+use constant SQL_CAPTCHA_TABLE => 'captcha';	# Global captcha table for all boards
+use constant CAPTCHA_LIFETIME => 300;			# Captcha lifetime in seconds
+use constant CAPTCHA_SCRIPT => 'captcha.pl';
+use constant CAPTCHA_HEIGHT => 18;
+use constant CAPTCHA_SCRIBBLE => 0.0;
+use constant CAPTCHA_SCALING => 0.15;
+use constant CAPTCHA_ROTATION => 0.3;
+use constant CAPTCHA_SPACING => 2.5;
 
-use constant ENABLE_DNSBL_CHECK => 1;
 use constant DNSBL_TIMEOUT => 0.1;
 use constant DNSBL_INFOS => [
 	['tor.dnsbl.sectoor.de',  '127.0.0.1', 'Tor-Exit-Node laut Auflistung von sectoor.de'],

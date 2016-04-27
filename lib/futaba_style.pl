@@ -275,7 +275,7 @@ use constant PAGE_TEMPLATE => compile_template(
 
 	<if $captcha_inp>
 		<tr><td class="postblock"><label for="captcha"><const S_CAPTCHA></label> (<a href="/faq">?</a>) (<var $loc>)</td>
-		<td><input type="text" name="captcha" id="captcha" size="10" /> <img alt="" src="/captcha.pl?key=<var get_captcha_key($thread)>&amp;dummy=<var $dummy>&amp;board=<var BOARD_IDENT>" /></td></tr>
+		<td><input type="text" name="captcha" id="captcha" size="10" /> <img alt="" src="/<const CAPTCHA_SCRIPT>?key=<var get_captcha_key($thread)>&amp;dummy=<var $dummy>&amp;board=<const BOARD_IDENT>" /></td></tr>
 	</if>
 
 	<tr><td class="postblock"><label for="password"><const S_DELPASS></label></td><td><input type="password" name="password" id="password" /> <const S_DELEXPL></td></tr>
@@ -484,7 +484,7 @@ use constant ERROR_TEMPLATE => compile_template(
  <if $reason><const S_BANNEDREASON><br /><strong><var $reason></strong></if>
  <if !$reason><const S_BANNEDNOREASON></if>
  <br /><br />
- <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, 'phutaba')></if>
+ <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, 'phutaba', S_WEEKDAYS, S_MONTHS)></if>
  <if !$expires><const S_BANNEDNOEXPIRE></if>
  <br />
 </loop>

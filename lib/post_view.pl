@@ -28,26 +28,26 @@ use constant POST_VIEW_INCLUDE => q{
 		<if SHOW_FLAGS && !$adminpost><var get_post_flag($location)></if>
         <span class="postername"><var $name><if $trip><span class="tripcode"><var $trip></span></if></span>
 		<if $adminpost><span class="teampost">## Team ##</span></if>
-		<span class="date desktop"><var make_date($timestamp, 'phutaba')></span>
+		<span class="date desktop"><var make_date($timestamp, 'phutaba', S_WEEKDAYS, S_MONTHS)></span>
 		<span class="date mobile"><var make_date($timestamp, '2ch')></span>
 	</label>
 
 	<if SSL_ICON && $secure>
-		<span onmouseover="Tip('<var $secure>')" onmouseout="UnTip()"><img src="<var SSL_ICON>" alt="SSL" /></span>
+		<span onmouseover="Tip('<var $secure>')" onmouseout="UnTip()"><img src="<const SSL_ICON>" alt="" /></span>
 	</if>
 
 	<span class="reflink">
                 <if !$parent>
-                        <a href="<var get_reply_link($num,0)>#i<var $num>">Nr.&nbsp;<var $num></a>
+                        <a href="<var get_reply_link($num,0)>#i<var $num>"><const S_POSTNO>&nbsp;<var $num></a>
                 </if>			
                 <if $parent>
-                        <a href="<var get_reply_link($parent,0)>#i<var $num>">Nr.&nbsp;<var $num></a>
+                        <a href="<var get_reply_link($parent,0)>#i<var $num>"><const S_POSTNO>&nbsp;<var $num></a>
                 </if>
 	</span>
 
 	<if !$parent>
-		<if $sticky><span class="sticky"><img src="/img/icons/pin.png" onmouseover="Tip('<var S_STICKYTITLE>')" onmouseout="UnTip()" alt="Pin" /></span></if>
-		<if $locked><span class="locked"><img src="/img/icons/locked.png" onmouseover="Tip('<var S_LOCKEDTITLE>')" onmouseout="UnTip()" alt="Lock" /></span></if>
+		<if $sticky><span class="sticky"><img src="/img/icons/pin.png" onmouseover="Tip('<const S_STICKYTITLE>')" onmouseout="UnTip()" alt="Pin" /></span></if>
+		<if $locked><span class="locked"><img src="/img/icons/locked.png" onmouseover="Tip('<const S_LOCKEDTITLE>')" onmouseout="UnTip()" alt="Lock" /></span></if>
 		<if !$autosage><if $email><span class="sage"><const S_SAGE></span></if></if>
 		<if !$sticky><if $autosage><span class="sage"><const S_BUMPLIMIT></span></if></if>
 	</if>

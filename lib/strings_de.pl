@@ -23,6 +23,7 @@ use constant S_ALLOWED => 'Erlaubte Dateiformate (Maximalgr&ouml;&szlig;e %s ode
 
 use constant S_PICNAME => '';             # Prints text before upload name/link
 use constant S_REPLY   => 'Antworten';    # Prints text for reply link
+use constant S_POSTNO  => 'Nr.';
 
 use constant S_HIDE => 'Thread %d ausblenden';
 
@@ -62,8 +63,10 @@ use constant S_SEARCHFOUND		=> 'Ergebnisse:';
 use constant S_OPTIONS			=> 'Optionen';
 use constant S_MINLENGTH		=> '(min. 3 Zeichen)';
 
-use constant S_WEEKDAYS => ( 'So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa' )
+use constant S_WEEKDAYS => 'So Mo Di Mi Do Fr Sa'
   ;                                         # Defines abbreviated weekday names.
+use constant S_MONTHS => 'Januar Februar M&auml;rz April Mai Juni Juli August September Oktober November Dezember'
+  ;                                         # Defines long month names
 
 use constant S_STICKYTITLE => 'Thread ist angepinnt'
   ;    # Defines the title of the tiny sticky image on a thread if it is sticky
@@ -293,5 +296,55 @@ use constant S_REDIR =>
 
 use constant S_DNSBL =>
   'Fehler: TOR-Nodes sind nicht erlaubt!';    # error string for tor node check
+
+
+use constant TOOLTIP_TAGS => (
+	LC_1Page => '1 Seite',
+	LC_Pages => '%d Seiten',
+	LC_1File => '1 Datei',
+	LC_Files => '%d Dateien',
+	LC_Codec => 'Codec',
+	LC_Archive => '<strong>Archiv mit %s:</strong>',
+	LC_Omitted => '<em>(%d weitere nicht angezeigt)</em>',
+
+	"FileSize" => "Dateigr&ouml;&szlig;e",
+	"FileType" => "Dateityp",
+	"ImageSize" => "Aufl&ouml;sung",
+	"ModifyDate" => "&Auml;nderungsdatum",
+	"Comment" => "Kommentar",
+	"Comment-xxx" => "Kommentar (2)",
+	"CreatorTool" => "Erstellungstool",
+	"Software" => "Software",
+	"MIMEType" => "Inhaltstyp",
+	"Producer" => "Software",
+	"Creator" => "Generator",
+	"Author" => "Autor",
+	"Subject" => "Betreff",
+	"PDFVersion" => "PDF-Version",
+	"PageCount" => "Seiten",
+	"Title" => "Titel",
+	"Duration" => "L&auml;nge",
+	"Artist" => "Interpret",
+	"AudioBitrate" => "Bitrate",
+	"ChannelMode" => "Kanalmodus",
+	"Compression" => "Kompressionsverfahren",
+	"FrameCount" => "Frames",
+	"Vendor" => "Library-Hersteller",
+	"Album" => "Album",
+	"Genre" => "Genre",
+	"Composer" => "Komponist",
+	"Model" => "Modell",
+	"Maker" => "Hersteller",
+	"OwnerName" => "Besitzer",
+	"CanonModelID" => "Canon-eigene Modellnummer",
+	"UserComment" => "Kommentar (3)",
+	"GPSPosition" => "Position",
+	"Publisher" => "Herausgeber",
+	"Language" => "Sprache",
+	"AudioChannels" => "Audio-Kan&auml;le",
+	"Channels" => "Kan&auml;le",
+	"VideoFrameRate" => "Bildrate",
+);
+
 
 1;
