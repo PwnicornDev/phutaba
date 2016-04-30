@@ -111,7 +111,7 @@ use constant S_MANAPANEL => 'Post moderation'
   ; # Defines Management Panel radio button--allows the user to view the management panel (overview of all posts)
 use constant S_MANATOOLS  => 'Tools';
 use constant S_MANABANS   => 'Manage bans';         # Defines Bans Panel button
-use constant S_MANAORPH   => 'Orphaned file';
+use constant S_MANAORPH   => 'Orphaned files';
 use constant S_MANALOGOUT => 'Logout';          #
 
 use constant S_MANAMODE => 'Administration';   # Prints heading on top of Manager page
@@ -265,7 +265,7 @@ use constant S_WRONGPASS => 'Error: Wrong password / please login again.'
   ;    # Returns error for wrong password (when trying to access Manager modes)
 
 use constant S_NOTWRITE =>
-  'Error: Unable to write to directory.'
+  'Error: Cannot to write to directory.'
   ; # Returns error when the script cannot write to the directory, the chmod (777) is wrong
 use constant S_SPAM => 'Spam? Scram!';   # Returns error when detecting spam
 
@@ -282,43 +282,43 @@ use constant TOOLTIP_TAGS => (
 	LC_Omitted => '<em>(%d more not shown)</em>',
 	LC_Codec => 'Codec',
 
-	"FileSize" => "Dateigr&ouml;&szlig;e",
-	"FileType" => "Dateityp",
-	"ImageSize" => "Aufl&ouml;sung",
-	"ModifyDate" => "&Auml;nderungsdatum",
-	"Comment" => "Kommentar",
-	"Comment-xxx" => "Kommentar (2)",
-	"CreatorTool" => "Erstellungstool",
+	"FileSize" => "File size",
+	"FileType" => "File type",
+	"ImageSize" => "Resolution",
+	"ModifyDate" => "Modfied",
+	"Comment" => "Comment",
+	"Comment-xxx" => "Comment (2)",
+	"CreatorTool" => "Creator tool",
 	"Software" => "Software",
-	"MIMEType" => "Inhaltstyp",
+	"MIMEType" => "Content type",
 	"Producer" => "Software",
-	"Creator" => "Generator",
-	"Author" => "Autor",
-	"Subject" => "Betreff",
-	"PDFVersion" => "PDF-Version",
-	"PageCount" => "Seiten",
-	"Title" => "Titel",
-	"Duration" => "L&auml;nge",
-	"Artist" => "Interpret",
+	"Creator" => "Creator",
+	"Author" => "Author",
+	"Subject" => "Subject",
+	"PDFVersion" => "PDF version",
+	"PageCount" => "Page count",
+	"Title" => "Title",
+	"Duration" => "Duration",
+	"Artist" => "Artist",
 	"AudioBitrate" => "Bitrate",
-	"ChannelMode" => "Kanalmodus",
-	"Compression" => "Kompressionsverfahren",
+	"ChannelMode" => "Channel mode",
+	"Compression" => "Compression method",
 	"FrameCount" => "Frames",
-	"Vendor" => "Library-Hersteller",
+	"Vendor" => "Library vendor",
 	"Album" => "Album",
 	"Genre" => "Genre",
-	"Composer" => "Komponist",
-	"Model" => "Modell",
-	"Maker" => "Hersteller",
-	"OwnerName" => "Besitzer",
-	"CanonModelID" => "Canon-eigene Modellnummer",
-	"UserComment" => "Kommentar (3)",
+	"Composer" => "Composer",
+	"Model" => "Model",
+	"Maker" => "Maker",
+	"OwnerName" => "Owner",
+	"CanonModelID" => "Canon model ID",
+	"UserComment" => "Comment (3)",
 	"GPSPosition" => "Position",
-	"Publisher" => "Herausgeber",
-	"Language" => "Sprache",
-	"AudioChannels" => "Audio-Kan&auml;le",
-	"Channels" => "Kan&auml;le",
-	"VideoFrameRate" => "Bildrate",
+	"Publisher" => "Publisher",
+	"Language" => "Language",
+	"AudioChannels" => "Audio channels",
+	"Channels" => "Channels",
+	"VideoFrameRate" => "Frame rate",
 );
 
 
