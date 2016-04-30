@@ -67,6 +67,17 @@ BEGIN {
     set_message( \&handler_errors );
 }
 
+## temporary debug profiling
+my ($has_timer, $has_timer_start, $has_timer_output);
+BEGIN {
+	eval 'use Time::HiRes';
+	unless ($@) {
+		$has_timer = Time::HiRes::gettimeofday();
+		$has_timer_start = $has_timer;
+		$has_timer_output = '';
+	}
+}
+
 #
 # Import settings
 #
@@ -116,18 +127,6 @@ if (CONVERT_CHARSETS) {
     eval 'use Encode qw(decode encode)';
     $has_encode = 1 unless ($@);
 }
-
-## temporary debug profiling
-my ($has_timer, $has_timer_start, $has_timer_output);
-BEGIN {
-	eval 'use Time::HiRes';
-	unless ($@) {
-		$has_timer = Time::HiRes::gettimeofday();
-		$has_timer_start = $has_timer;
-		$has_timer_output = '';
-	}
-}
-
 
 #
 # Global init
@@ -610,9 +609,6 @@ sub output_page {
 			# create ref-links
 			$$post{comment} = resolve_reflinks($$post{comment});
 
-			## temporary debug code for testing sub count_lines()
-			#my $debug_comment = $$post{comment};
-
             my $abbreviation =
               abbreviate_html( $$post{comment}, MAX_LINES_SHOWN,
                 APPROX_LINE_LENGTH );
@@ -621,9 +617,6 @@ sub output_page {
                 $$post{comment_full} = $$post{comment};
                 $$post{comment} = $abbreviation;
             }
-
-			## temporary debug code for testing sub count_lines()
-			#$$post{comment} .= debug_line_count($debug_comment) if ($isAdmin);
         }
     }
 
@@ -694,7 +687,7 @@ sub get_omit_message($$) {
 
 sub get_abbrev_message($) {
 	my ($lines) = @_;
-	return S_ABBRTEXT1 if ($lines == 1);
+	return S_ABBRTEXT1 if ($lines <= 1); # oh well
 	return sprintf(S_ABBRTEXT2, $lines);
 }
 
@@ -723,10 +716,6 @@ sub show_thread {
 
     while ( $row = get_decoded_hashref($sth) ) {
 		$$row{comment} = resolve_reflinks($$row{comment});
-
-		## temporary debug code for testing sub count_lines()
-		#$$row{comment} .= debug_line_count($$row{comment}) if ($isAdmin);
-
         push( @thread, $row );
     }
     make_error(S_NOTHREADERR, 1) if ( !$thread[0] or $thread[0]{parent} );
@@ -2224,7 +2213,7 @@ sub make_admin_post_panel {
 	unless ($@) {
 		eval '$api = Geo::IP->api';
 
-		$api .= ' (IPv6-Lookups erfordern CAPI)' unless ($api eq 'CAPI');
+		$api .= ' (IPv6 lookups require CAPI)' unless ($api eq 'CAPI');
 
 		foreach (@geo_dbs) {
 			my ($gi, $geo_db);
@@ -2248,6 +2237,8 @@ sub make_admin_post_panel {
 
     my $files = ($sth->fetchrow_array())[0];
 
+	# TODO: "SELECT num, timestamp FROM " . SQL_TABLE . " WHERE"
+
     make_http_header();
     print encode_string(
         POST_PANEL_TEMPLATE->(
@@ -2256,6 +2247,10 @@ sub make_admin_post_panel {
             threads  => $threads,
             files    => $files,
             size     => $size,
+            oldest   => 0,
+            o_date   => 1,
+            newest   => 0,
+            n_date   => 1,
             geoip_api      => $api,
             geoip_results  => \@results
         )
@@ -2512,7 +2507,7 @@ sub add_admin_entry {
 		if ($type eq 'ipban') {
 			if ($sval1 =~ /\d+/) {
 				$sval1 += $time;
-				$expires = make_date($sval1, 'phutaba');
+				$expires = make_date($sval1, DATE_STYLE, S_WEEKDAYS, S_MONTHS);
 			} else { $sval1 = ""; }
 		}
 
@@ -2530,6 +2525,7 @@ sub add_admin_entry {
 
 		$utf8_encoded_json_text = encode_json({
 			"error_code" => 200,
+			"info_msg" => S_BANADDED,
 			"banned_ip" => dec_to_dot($ival1),
 			"banned_mask" => dec_to_dot($ival2),
 			"expires" => $expires,
@@ -2548,7 +2544,7 @@ sub add_admin_entry {
 
 sub check_admin_entry {
     my ($admin, $ival1) = @_;
-    my ($sth, $utf8_encoded_json_text, $results);
+    my ($sth, $utf8_encoded_json_text, $results, $info_msg);
     if (!check_password_silent($admin, ADMIN_PASS)) {
 		$utf8_encoded_json_text = encode_json({"error_code" => 401, "error_msg" => 'Unauthorized'});
 	} else {
@@ -2560,8 +2556,11 @@ sub check_admin_entry {
 				. " WHERE type='ipban' AND ival1=? AND (CAST(sval1 AS UNSIGNED)>? OR sval1='');");
 			$sth->execute(dot_to_dec($ival1), time());
 			$results = ($sth->fetchrow_array())[0];
+			$info_msg = S_BANFOUND if ($results);
 
-			$utf8_encoded_json_text = encode_json({"error_code" => 200, "results" => $results});
+			$utf8_encoded_json_text = encode_json({
+				"error_code" => 200, "info_msg" => $info_msg, "results" => $results
+			});
 		}
 	}
     make_json_header();
@@ -3189,18 +3188,6 @@ sub debug_exec_time {
 		return $result;
 	}
 	$has_timer = Time::HiRes::gettimeofday(); # lap reset timer
-}
-
-sub debug_line_count {
-	my ($comment) = @_;
-	my $abbreviation = abbreviate_html($comment, MAX_LINES_SHOWN, APPROX_LINE_LENGTH);
-	my $all_lines = count_lines($comment);
-	my $abbrev_lines = count_lines($abbreviation);
-	my $result = '';
-	$result = '<div class="omittedposts tldr" style="margin-left:0">Line Count: '
-		. "$all_lines - $abbrev_lines = "
-		. ($all_lines - $abbrev_lines) . "</div>" if ($all_lines);
-	return $result;
 }
 
 sub update_db_schema2 {  # mysql-specific. will be removed after migration is done.

@@ -88,7 +88,7 @@ use constant CHARSET => 'utf-8';				# Character set to use, typically 'utf-8' or
 use constant CONVERT_CHARSETS => 1;			# Do character set conversions internally
 use constant TRIM_METHOD => 0;					# Which threads to trim (0: oldest - like futaba 1: least active - furthest back)
 use constant ARCHIVE_MODE => 0;				# Old images and posts are moved into an archive dir instead of deleted (0: no 1: yes). It is HIGHLY RECOMMENDED you use TRIM_METHOD => 1 with this, or you may end up with unreferenced pictures in your archive
-use constant DATE_STYLE => 'futaba';			# Date style ('futaba', '2ch', 'localtime', 'tiny')
+use constant DATE_STYLE => 'phutaba';			# Date style ('phutaba', 'phutaba-en', 'futaba', '2ch', 'localtime', 'tiny')
 #use constant DISPLAY_ID => '';					# How to display user IDs (0 or '': don't display,
 												#  'day' and 'board' in any combination: make IDs change for each day or board,
 												#  'mask': display masked IP address (similar IPs look similar, but are still encrypted)
@@ -111,7 +111,6 @@ use constant THUMB_DIR => 'thumb/';			# Thumbnail directory (needs to be writeab
 use constant RES_DIR => 'res/';				# Reply cache directory (needs to be writeable by the script)
 use constant REDIR_DIR => 'redir/';			# Redir directory, used for redirecting clients when load balancing
 use constant HTML_SELF => 'wakaba.pl';
-use constant JS_FILE => 'wakaba.js';			# Location of the js file
 use constant ERRORLOG => '';					# Writes out all errors seen by user, mainly useful for debugging
 use constant CONVERT_COMMAND => 'convert';		# location of the ImageMagick convert command (usually just 'convert', but sometime a full path is needed)
 #use constant CONVERT_COMMAND => '/usr/X11R6/bin/convert';

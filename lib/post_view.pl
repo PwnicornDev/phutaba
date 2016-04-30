@@ -28,7 +28,7 @@ use constant POST_VIEW_INCLUDE => q{
 		<if SHOW_FLAGS && !$adminpost><var get_post_flag($location)></if>
         <span class="postername"><var $name><if $trip><span class="tripcode"><var $trip></span></if></span>
 		<if $adminpost><span class="teampost">## Team ##</span></if>
-		<span class="date desktop"><var make_date($timestamp, 'phutaba', S_WEEKDAYS, S_MONTHS)></span>
+		<span class="date desktop"><var make_date($timestamp, DATE_STYLE, S_WEEKDAYS, S_MONTHS)></span>
 		<span class="date mobile"><var make_date($timestamp, '2ch')></span>
 	</label>
 

@@ -170,16 +170,23 @@ use constant NORMAL_FOOT_INCLUDE => q{
 <script type="text/javascript" src="/static/js/hidethreads.js"></script>
 </if>
 
-<if $postform><script type="text/javascript">set_inputs("postform")</script></if>
-<script type="text/javascript">set_delpass("delform")</script>
-
 <script type="text/javascript">
 /* <![CDATA[ */
+  <if $postform>set_inputs("postform");</if>
+  set_delpass("delform");
+
+  var board = '<const BOARD_IDENT>';
+  var thread_id = <if $thread><var $thread></if><if !$thread>null</if>;
+  var filetypes = '<var get_filetypes()>';
+  var msg_remove_file = '<const S_JS_REMOVEFILE>';
+  var msg_show_thread1 = '<const S_JS_SHOWTHREAD1>';
+  var msg_show_thread2 = '<const S_JS_SHOWTHREAD2>';
+
   $j = jQuery.noConflict();
   $j(document).ready(function() {
     var match;
     if ((match = /#i([0-9]+)/.exec(document.location.toString())) && !document.forms.postform.field4.value) insert(">>" + match[1] + "\n");
-    if ((match = /#([0-9]+)/.exec(document.location.toString()))) highlight(match[1]);
+
     $j('#postform_submit').click(function() {
         $j('.postarea').block({
                 message: '<const S_JS_PLEASEWAIT>',
@@ -188,26 +195,18 @@ use constant NORMAL_FOOT_INCLUDE => q{
         setTimeout($j.unblockUI, 5000);
     });
 
-        <if $thread>
-        $j('#delform').delegate('span.reflink a', 'click', function (ev) {
-                var a = ev.target,
-                        sel = window.getSelection().toString();
-                ev.preventDefault();
-                insert('>>' + a.href.match(/#i(\d+)$/)[1] + '\n' + (sel ? '>' + sel.replace(/\n/g, '\n>') + '\n' : ''));
-        });
-        </if>
+    <if $thread>
+    $j('#delform').delegate('span.reflink a', 'click', function (ev) {
+        var a = ev.target,
+            sel = window.getSelection().toString();
+        ev.preventDefault();
+        insert('>>' + a.href.match(/#i(\d+)$/)[1] + '\n' + (sel ? '>' + sel.replace(/\n/g, '\n>') + '\n' : ''));
+    });
+    </if>
 
-        <if ENABLE_HIDE_THREADS && !$thread>hideThreads('<const BOARD_IDENT>', $j);</if>
+    <if ENABLE_HIDE_THREADS && !$thread>hideThreads('<const BOARD_IDENT>', $j);</if>
   });
 /* ]]> */
-</script>
-
-<script type="text/javascript">
-        var board = '<const BOARD_IDENT>', thread_id = <if $thread><var $thread></if><if !$thread>null</if>;
-        var filetypes = '<var get_filetypes()>';
-        var msg_remove_file = '<const S_JS_REMOVEFILE>';
-		var msg_show_thread1 = '<const S_JS_SHOWTHREAD1>';
-		var msg_show_thread2 = '<const S_JS_SHOWTHREAD2>';
 </script>
 
 <if ENABLE_WEBSOCKET_NOTIFY && $thread && !$locked><script type="text/javascript" src="/static/js/websock.js"></script></if>
@@ -244,10 +243,10 @@ use constant PAGE_TEMPLATE => compile_template(
 			<tr><td class="postblock">HTML</td>
 			<td><label><input type="checkbox" name="no_format" value="1" /> <const S_NOTAGS2></label></td></tr>
 		</if>
-	<if !FORCED_ANON or $admin><tr><td class="postblock"><label for="name"><const S_NAME></label></td><td><input type="text" name="field1" id="name" /></td></tr></if>
+	<if !FORCED_ANON or $admin><tr><td class="postblock"><label for="name"><const S_NAME></label></td><td><input type="text" name="field1" id="name" maxlength="<const MAX_FIELD_LENGTH>" /></td></tr></if>
 
-	<tr><td class="postblock"><label for="subject"><const S_SUBJECT></label></td><td><input type="text" name="field3" id="subject" />
-	<input type="submit" id="postform_submit" value="<if $thread><const S_BTREPLY> /<var BOARD_IDENT>/<var $thread></if><if !$thread><const S_BTNEWTHREAD></if>" /></td>
+	<tr><td class="postblock"><label for="subject"><const S_SUBJECT></label></td><td><input type="text" name="field3" id="subject" maxlength="<const MAX_FIELD_LENGTH>" />
+	<input type="submit" id="postform_submit" value="<if $thread><var sprintf S_BTREPLY, '/' . BOARD_IDENT . '/' . $thread></if><if !$thread><const S_BTNEWTHREAD></if>" /></td>
 	</tr>
 
 	<if $thread>
@@ -341,6 +340,9 @@ use constant PAGE_TEMPLATE => compile_template(
 </if>
 <if $thread>
 	<nav>
+		<ul class="pagelist">
+			<li>[<a href="/<const BOARD_IDENT>/"><const S_RETURN></a>]</li>
+		</ul>
 		<ul class="pagelist">
 			<li>[<a href="#top"><const S_TOP></a>]</li>
 		</ul>
@@ -484,7 +486,7 @@ use constant ERROR_TEMPLATE => compile_template(
  <if $reason><const S_BANNEDREASON><br /><strong><var $reason></strong></if>
  <if !$reason><const S_BANNEDNOREASON></if>
  <br /><br />
- <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, 'phutaba', S_WEEKDAYS, S_MONTHS)></if>
+ <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, DATE_STYLE, S_WEEKDAYS, S_MONTHS)></if>
  <if !$expires><const S_BANNEDNOEXPIRE></if>
  <br />
 </loop>
@@ -519,7 +521,7 @@ use constant ADMIN_LOGIN_TEMPLATE => compile_template(
 <option value="bans"><const S_MANABANS></option>
 <option value="orphans"><const S_MANAORPH></option>
 </select>
-<input type="submit" value="<const S_MANASUB>" />
+<input type="submit" value="<const S_MANALOGIN>" />
 </form></div>
 
 } . NORMAL_FOOT_INCLUDE
@@ -558,6 +560,7 @@ use constant POST_PANEL_TEMPLATE => compile_template(
 </div><br />
 
 <var sprintf S_IMGSPACEUSAGE, get_displaysize($size, DECIMAL_MARK), $files, $posts, $threads>
+<var sprintf S_POSTSTATS, make_date($o_date, '2ch'), $oldest, make_date($n_date, '2ch'), $newest>
 
 } . NORMAL_FOOT_INCLUDE
 );

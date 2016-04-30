@@ -26,6 +26,10 @@ my $protocol_re = qr{(?:http://|https://|ftp://|mailto:|news:|irc:)};
 my $url_re =
 qr{(${protocol_re}[^\s<>()"]*?(?:\([^\s<>()"]*?\)[^\s<>()"]*?)*)((?:\s|<|>|"|\.||\]|!|\?|,|&#44;|&quot;)*(?:[\s<>()"]|$))};
 
+sub protocol_regexp { return $protocol_re }
+
+sub url_regexp { return $url_re }
+
 sub get_meta {
 	my ($file, $charset, @tagList) = @_;
 	my (%data, $exifData);
@@ -164,10 +168,6 @@ sub get_meta_markup {
 	return ($info, $markup);
 }	
 
-sub protocol_regexp { return $protocol_re }
-
-sub url_regexp { return $url_re }
-
 sub get_geolocation($) {
 	my ($ip) = @_;
 	my $loc = "unk";
@@ -260,13 +260,23 @@ sub count_lines($) {
 sub abbreviate_html {
     my ( $html, $max_lines, $approx_len ) = @_;
     my ( $lines, $chars, @stack );
-    $lines = 0;
+
     return undef unless ($max_lines);
 
     while ( $html =~ m!(?:([^<]+)|<(/?)(\w+).*?(/?)>)!g ) {
-        my ( $text, $closing, $tag, $implicit ) = ( $1, $2, $3, $4 );
-        $tag = lc($tag) if defined;
-        if ($text) { $chars += length $text; }
+        my ( $text, $closing, $tag, $implicit ) = ( $1, $2, lc($3), $4 );
+
+        if ($text) {
+			my $text_len = length $text;
+			$chars += $text_len;
+
+			# detect one single too long line (without tags)
+			if (int( $text_len / $approx_len ) > $max_lines) {
+				my $abbrev = substr $html, 0, pos($html) - $text_len + $approx_len * $max_lines;
+				while ( my $tag = pop @stack ) { $abbrev .= "</$tag>" }
+				return $abbrev;
+			}
+		}
         else {
             push @stack, $tag if ( !$closing and !$implicit );
             pop @stack if ($closing);
@@ -287,14 +297,15 @@ sub abbreviate_html {
                 $chars = 0;
             }
             if ( $lines >= $max_lines ) {
-
                 # check if there's anything left other than end-tags
                 return undef
                   if ( substr $html, pos $html ) =~ m!^(?:\s*</\w+>)*\s*$!s;
 
                 my $abbrev = substr $html, 0, pos $html;
+
 				# remove newlines from the end of the comment before closing tags
 				$abbrev =~ s/(<br ?\/>)+$//;
+
                 while ( my $tag = pop @stack ) { $abbrev .= "</$tag>" }
 
                 return $abbrev;
@@ -1169,6 +1180,17 @@ sub make_date {
 			$ltime[2], $ltime[1], $ltime[0]
 		);
 	}
+	elsif ($style eq "phutaba-en") {
+		my @ltime = localtime($time);
+
+		return sprintf("%s %d, %d (%s.) %02d:%02d:%02d",
+			$fullmonths[$ltime[4]],
+			$ltime[3],
+			$ltime[5] + 1900,
+			$days[$ltime[6]],
+			$ltime[2], $ltime[1], $ltime[0]
+		);
+	}
     elsif ( $style eq "2ch" ) {
         my @ltime = localtime($time);
 
@@ -1199,6 +1221,9 @@ sub make_date {
     }
     elsif ( $style eq "http" ) {
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime($time);
+		@days   = qw(Sun Mon Tue Wed Thu Fri Sat);
+		@months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+
         return sprintf(
             "%s, %02d %s %04d %02d:%02d:%02d GMT",
             $days[$wday], $mday, $months[$mon], $year + 1900,
@@ -1220,18 +1245,6 @@ sub make_date {
     elsif ( $style eq "month" ) {
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime($time);
         return sprintf( "%s %d", $months[$mon], $year + 1900 );
-    }
-    elsif ( $style eq "2ch-sep93" ) {
-        my $sep93 = timelocal( 0, 0, 0, 1, 8, 93 );
-        return make_date( $time, "2ch" ) if ( $time < $sep93 );
-
-        my @ltime = localtime($time);
-
-        return sprintf(
-            "%04d-%02d-%02d %02d:%02d",
-            1993, 9, int( $time - $sep93 ) / 86400 + 1,
-            $ltime[2], $ltime[1]
-        );
     }
 }
 
@@ -2044,7 +2057,7 @@ sub get_post_info($$) {
 		$items[4] .= ' [<a href="' . $ENV{SCRIPT_NAME}
 			. '?task=addstring&amp;type=asban&amp;board=' . $board
 			. '&amp;string=' . $1
-			. '&amp;comment=' . urlenc($items[4]) . '">Sperren</a>]';
+			. '&amp;comment=' . urlenc($items[4]) . '">Ban</a>]';
 
 		return $flag . $location . '<br />' . $items[4];
 	}

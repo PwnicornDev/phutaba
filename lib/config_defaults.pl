@@ -152,7 +152,7 @@ BEGIN {
     eval "use constant CONVERT_CHARSETS => 1"
       unless ( defined &CONVERT_CHARSETS );
     eval "use constant TRIM_METHOD => 0"       unless ( defined &TRIM_METHOD );
-    eval "use constant DATE_STYLE => 'futaba'" unless ( defined &DATE_STYLE );
+    eval "use constant DATE_STYLE => 'phutaba'" unless ( defined &DATE_STYLE );
     eval "use constant DISPLAY_ID => 0"        unless ( defined &DISPLAY_ID );
     eval "use constant EMAIL_ID => 'Heaven'"   unless ( defined &EMAIL_ID );
     eval "use constant TRIPKEY => '!'"         unless ( defined &TRIPKEY );
@@ -178,7 +178,6 @@ BEGIN {
     eval "use constant REDIR_DIR => 'redir/'"  unless ( defined &REDIR_DIR );
     eval "use constant HTML_SELF => 'wakaba.html'"
       unless ( defined &HTML_SELF );
-    eval "use constant JS_FILE => 'wakaba3.js'" unless ( defined &JS_FILE );
     eval "use constant CSS_DIR => 'static/css/'" unless ( defined &CSS_DIR );
     eval "use constant ERRORLOG => ''"          unless ( defined &ERRORLOG );
     eval "use constant CONVERT_COMMAND => 'convert'"
