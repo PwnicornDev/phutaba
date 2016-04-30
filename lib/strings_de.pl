@@ -31,6 +31,7 @@ use constant S_REPLY   => 'Antworten';    # Prints text for reply link
 
 # post files / tooltips
 use constant S_FILEINFO => 'Informationen';
+use constant S_FILENAME => 'Dateiname';
 use constant S_FILEDELETED => 'Datei gel&ouml;scht';
 use constant S_PICNAME => '';             # Prints text before upload name/link
 

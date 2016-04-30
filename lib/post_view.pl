@@ -116,7 +116,7 @@ use constant POST_VIEW_INCLUDE => q{
 <if $thumbnail><div class="file"></if>
 <if !$thumbnail><div class="file filebg"></if>
 	<div class="hidden" id="imageinfo_<var md5_hex($image)>">
-		<strong>Dateiname:</strong> <var $uploadname><br />
+		<strong><const S_FILENAME>:</strong> <var $uploadname><br />
 		<var get_pretty_html($info_all, "\n\t\t")>
 	</div>
 	<div class="filename"><const S_PICNAME><a target="_blank" title="<var $uploadname>" href="<var expand_image_filename($image)>/<var get_urlstring($uploadname)>"><var $displayname></a></div>
