@@ -1,4 +1,4 @@
-#![Phutaba](https://cloud.githubusercontent.com/assets/173749/21355624/08f02130-c6cf-11e6-8c64-debb59bc9cc6.png)
+# ![Phutaba](https://cloud.githubusercontent.com/assets/173749/21355624/08f02130-c6cf-11e6-8c64-debb59bc9cc6.png)
 
 An Imageboard engine based on [Wakaba](http://wakaba.c3.cx/s/web/wakaba_kareha).
 
