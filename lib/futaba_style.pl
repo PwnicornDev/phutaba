@@ -204,7 +204,7 @@ use constant NORMAL_FOOT_INCLUDE => q{
     });
     </if>
 
-    <if ENABLE_HIDE_THREADS && !$thread>hideThreads('<const BOARD_IDENT>', $j);</if>
+    <if ENABLE_HIDE_THREADS && !$thread>hideThreads('<const BOARD_IDENT>');</if>
   });
 /* ]]> */
 </script>

@@ -1,12 +1,8 @@
-/* requires jquery: jQuery.noConflict() */
+/* requires jquery: $j = jQuery.noConflict(); */
 
 /* called when loading a board-page: read list of hidden threads from the cookie and hide them */
-function hideThreads(bid, $j) {
-	hidThreads = $j.cookie('hidden_' + bid);
-	if (hidThreads != null)
-		hidThreads = JSON.parse(hidThreads);
-	if (hidThreads == null)
-		return;
+function hideThreads(bid) {
+	hidThreads = loadThreads(bid);
 	for (i = 0; i < hidThreads.length; i++) {
 		thread = $j('thread_' + hidThreads[i]);
 		if (thread == null)
@@ -16,63 +12,70 @@ function hideThreads(bid, $j) {
 	}
 }
 
+/* hides a single thread from the board page and adds HTML to display it again */
+function hideThread(tid, bid) {
+	hidThreads = loadThreads(bid);
+	for (i = 0; i < hidThreads.length; i++)
+		if (hidThreads[i] == tid)
+			return;
+	$j("#thread_" + tid).hide();
+	$j("#thread_" + tid).after(getHiddenHTML(tid, bid));
+	addHideThread(tid, bid);
+};
+
+/* displays the thread again after it was hidden */
+function showThread(tid, bid) {
+	$j('.show_' + tid).hide();
+	$j('.show_' + tid).remove();
+	$j("#thread_" + tid).show();
+	removeHideThread(tid, bid);
+};
+
+/** internal helper functions **/
+
 /* adds the thread id to the cookie */
-function addHideThread(tid, bid, $j) {
-	hidThreads = $j.cookie('hidden_' + bid);
-	if (hidThreads != null)
-		hidThreads = JSON.parse(hidThreads);
-	if (hidThreads == null)
-		hidThreads = [];
+function addHideThread(tid, bid) {
+	hidThreads = loadThreads(bid);
 	for (i = 0; i < hidThreads.length; i++)
 		if (hidThreads[i] == tid)
 			return;
 	hidThreads[hidThreads.length] = tid;
-	$j.cookie('hidden_' + bid, JSON.stringify(hidThreads), { expires: 7 });
+	saveThreads(bid, hidThreads);
 }
 
 /* deletes a thread id from the cookie */
-function removeHideThread(tid, bid, $j) {
-	hidThreads = $j.cookie('hidden_' + bid);
-	if (hidThreads == null)
+function removeHideThread(tid, bid) {
+	hidThreads = loadThreads(bid);
+	if (hidThreads.length == 0)
 		return;
-
-	hidThreads = JSON.parse(hidThreads);
 	for (i = 0; i < hidThreads.length; i++)
 		if (hidThreads[i] == tid) {
 			hidThreads.splice(i, 1);
 			i--;
 		}
-	$j.cookie('hidden_' + bid, JSON.stringify(hidThreads), { expires: 7 });
+	saveThreads(bid, hidThreads);
 }
 
-/* hides a single thread from the board page and adds HTML to display it again */
-function hideThread(tid, bid, $j) {
-	hidThreads = $j.cookie('hidden_' + bid);
-	if (hidThreads != null) {
-		hidThreads = JSON.parse(hidThreads);
-		for (i = 0; i < hidThreads.length; i++)
-			if (hidThreads[i] == tid)
-				return;
-	}
-	$j("#thread_" + tid).hide();
-	$j("#thread_" + tid).after(getHiddenHTML(tid, bid));
-	addHideThread(tid, bid, $j);
-};
+/* load thread list from cookie */
+function loadThreads(bid) {
+	value = $j.cookie('hidden_' + bid);
+	if (value == null)
+		return [];
+	return JSON.parse(value);
+}
 
-/* displays the thread again after it was hidden */
-function showThread(tid, bid, $j) {
-	$j('.show_' + tid).hide();
-	$j('.show_' + tid).remove();
-	$j("#thread_" + tid).show();
-	removeHideThread(tid, bid, $j);
-};
+/* save thread list to cookie */
+function saveThreads(bid, threads) {
+	$j.cookie('hidden_' + bid, JSON.stringify(threads), { expires: 7, path: '/'+bid+'/' });
+}
 
 /* create HTML for diplaying a hidden thread */
 function getHiddenHTML(tid, bid) {
 	return '<div class="show_' + tid + ' togglethread">'
-		+ '<a class="hide" onclick="showThread(\'' + tid + '\', \'' + bid + '\', $j);">'
+		+ '<a class="hide" onclick="showThread(\'' + tid + '\', \'' + bid + '\');">'
 		+ '<img src="/img/icons/show.png" width="16" height="16" alt="'
 		+ msg_show_thread1 + tid + msg_show_thread2 + '" />'
 		+ ' <strong>' + msg_show_thread1 + tid + '</strong>'
 		+ msg_show_thread2 + '</a></div>';
 };
+
