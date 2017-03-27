@@ -1,8 +1,8 @@
 <!DOCTYPE html> 
-<html lang="de"> 
+<html[% IF lang %] lang="[% lang %]"[% END %]>
 
 <head>
-	<title>Ernstchan [% IF template.title %]&raquo; [% template.title %][% END %]</title>
+	<title>Ernstchan[% IF template.title %] &raquo; [% template.title %][% END %]</title>
 	<meta charset="utf-8" />
 	<link rel="stylesheet" type="text/css" href="/static/css/phutaba.css" />
 	<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico" />
@@ -19,11 +19,11 @@
 
 <nav>
 	<ul class="menu">
-[% INCLUDE nav_boards.html %]
+[% INSERT nav_boards.html %]
 	</ul>
 
 	<ul class="menu right">
-[% INCLUDE nav_pages.html %]
+[% INSERT "nav_pages.${lang}.html" %]
 	</ul>
 </nav>
 

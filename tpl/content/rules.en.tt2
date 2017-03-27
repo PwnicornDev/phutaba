@@ -1,0 +1,18 @@
+[% META
+   title   = 'Rules'
+%]
+
+	<header class="title">1. Age restriction</header>
+	<div class="info">
+		<p>Ernstchan's visitors are required to be <strong>at least 18 years old</strong>. If you are under 18, you should not be here.</p>
+	</div>
+
+	<header class="title">2. Uploads</header>
+	<div class="info">
+		<p><strong>It is forbidden to upload any files that violate the law!</strong></p>
+	</div>
+
+	<header class="title">3. IRC</header>
+	<div class="info">
+		<p>Join the <a href="/irc">IRC channel</a> to talk to other Ernsts. Try to be polite or you might be kicked.</p>
+	</div>

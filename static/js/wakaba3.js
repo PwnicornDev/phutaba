@@ -197,7 +197,7 @@ function isElementInViewport(el) {
 function expand_image(element, org_width, org_height, thumb_width, thumb_height, thumb) {
 	var img = element;
 	var org = img.parentNode.href;
-	var post = img.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode;
+	var post = img.parentNode.parentNode.parentNode;
 
 	if (img.src != org) {
 		img.src = org;

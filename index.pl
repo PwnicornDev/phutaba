@@ -63,59 +63,80 @@ if (!$page) {
 }
 
 # handle template page
-my $ttfile = "content/" . $page . ".tt2";
+my $lang = "en";
+my @langs = map{ substr($_, 0, 2) } split(",", $ENV{HTTP_ACCEPT_LANGUAGE});
+foreach my $l (@langs) { if ($l eq "de") { $lang = "de"; last; } }
+my $ttfile = "content/$page.$lang.tt2";
+
+# language strings
+my ($err403tit, $err403msg, $err404tit, $err404msg1, $err404msg2);
+if ($lang eq "de") {
+	$err403tit  = "HTTP-Fehler 403: Zugriff verboten";
+	$err403msg  = "Der Zugriff auf diese Ressource ist nicht erlaubt.";
+	$err404tit  = "HTTP-Fehler 404: Objekt nicht gefunden";
+	$err404msg1 = "Die gew&uuml;nschte Datei existiert nicht oder wurde gel&ouml;scht.";
+	$err404msg2 = "Es existiert weder ein Board noch eine Seite mit diesem Namen.";
+}
+else {
+	$err403tit  = "HTTP Error 403: Access forbidden";
+	$err403msg  = "Access to this resource is not allowed.";
+	$err404tit  = "HTTP Error 404: Object not found";
+	$err404msg1 = "The file was deleted or did not exist.";
+	$err404msg2 = "No board or page with this name exists.";
+}
 
 my $tt = Template->new({
         INCLUDE_PATH => 'tpl/',
-        #ENCODING     => 'utf8', # NO!
-        ERROR        => 'error.tt2',
+        #ENCODING     => 'utf8', # do not set this
+        ERROR        => 'error.${lang}.tt2',
         PRE_PROCESS  => 'header.tt2',
         POST_PROCESS => 'footer.tt2',
 });
 
 if ($page eq 'err403') {
-	tpl_make_error({
+	tpl_make_error($lang, {
 		'http' => '403 Forbidden',
-		'type' => "HTTP-Fehler 403: Zugriff verboten",
-		'info' => "Der Zugriff auf diese Ressource ist nicht erlaubt.",
-		'image' => "/img/403.png"
+		'image' => "/img/403.png",
+		'type' => $err403tit,
+		'info' => $err403msg,
 	});
 }
 elsif ($page eq 'err404') {
-	tpl_make_error({
+	tpl_make_error($lang, {
 		'http' => '404 Not found',
-		'type' => "HTTP-Fehler 404: Objekt nicht gefunden",
-		'info' => "Die gew&uuml;nschte Datei existiert nicht oder wurde gel&ouml;scht.",
-		'image' => "/img/404.png"
+		'image' => "/img/404.png",
+		'type' => $err404tit,
+		'info' => $err404msg1,
 	});
 }
 elsif (-f 'tpl/' . $ttfile) {
 	my $output;
-	if ($tt->process($ttfile, {'tracking_code' => TRACKING_CODE}, \$output)) {
+	if ($tt->process($ttfile, {'tracking_code' => TRACKING_CODE, 'lang' => $lang}, \$output)) {
 		print $q->header();
 		print $output;
 	} else {
-		tpl_make_error({
+		tpl_make_error('en', {
 			'http' => '500 Boom',
-			'type' => "Fehler bei Skriptausf&uuml;hrung",
+			'type' => "Server error during script execution",
 			'info' => $tt->error
 		});
 	}
 }
 else {
-	tpl_make_error({
+	tpl_make_error($lang, {
 		'http' => '404 Not found',
-		'type' => "HTTP-Fehler 404: Objekt nicht gefunden",
-		'info' => "Es existiert weder ein Board noch eine Seite mit diesem Namen.",
-		'image' => "/img/404.png"
+		'image' => "/img/404.png",
+		'type' => $err404tit,
+		'info' => $err404msg2,
 	});
 }
 
-sub tpl_make_error($) {
-	my ($params) = @_;
+sub tpl_make_error($$) {
+	my ($lang, $params) = @_;
 	print $q->header(-status=>$$params{http});
-	$tt->process("error.tt2", {
+	$tt->process("error.${lang}.tt2", {
 		'tracking_code' => TRACKING_CODE,
-		'error' => $params
+		'error' => $params,
+		'lang'  => $lang,
 	});
 }

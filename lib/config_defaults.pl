@@ -14,6 +14,7 @@ BEGIN {
     die S_NOSQL    unless ( defined &SQL_DBI_SOURCE );
     die S_NOSQL    unless ( defined &SQL_USERNAME );
     die S_NOSQL    unless ( defined &SQL_PASSWORD );
+    eval "use constant BOARD_LANG => 'de'" unless (defined &BOARD_LANG);
     eval "use constant ABUSE_EMAIL => ''" unless (defined &ABUSE_EMAIL);
     eval "use constant TRACKING_CODE => ''" unless (defined &TRACKING_CODE);
     eval "use constant SQL_TABLE => 'comments'" unless ( defined &SQL_TABLE );
@@ -22,8 +23,6 @@ BEGIN {
     eval "use constant SQL_PREFIX => 'ernstchan_';" unless (defined &SQL_PREFIX);
     eval "use constant SSL_ICON => '/img/icons/ssl.png'" unless (defined &SSL_ICON);
     eval "use constant USE_TEMPFILES => 1" unless ( defined &USE_TEMPFILES );
-    eval "use constant ENABLE_LOCATION => 0"
-      unless ( defined &ENABLE_LOCATION );
     eval "use constant TITLE => 'Wakaba image board'" unless ( defined &TITLE );
     eval "use constant SHOWTITLETXT => 1" unless ( defined &SHOWTITLETXT );
     eval "use constant SHOWTITLEIMG => 0" unless ( defined &SHOWTITLEIMG );
@@ -47,6 +46,7 @@ BEGIN {
       unless ( defined &REPLIES_PER_LOCKED_THREAD );
     eval "use constant IMAGE_REPLIES_PER_LOCKED_THREAD => 0"
       unless ( defined &IMAGE_REPLIES_PER_LOCKED_THREAD );
+    eval "use constant SHOW_FLAGS => 0"          unless ( defined &SHOW_FLAGS );
     eval "use constant S_ANONAME => 'Anonymous'" unless ( defined &S_ANONAME );
     eval "use constant S_ANOTEXT => ''"          unless ( defined &S_ANOTEXT );
     eval "use constant S_ANOTITLE => ''"         unless ( defined &S_ANOTITLE );
@@ -152,7 +152,7 @@ BEGIN {
     eval "use constant CONVERT_CHARSETS => 1"
       unless ( defined &CONVERT_CHARSETS );
     eval "use constant TRIM_METHOD => 0"       unless ( defined &TRIM_METHOD );
-    eval "use constant DATE_STYLE => 'futaba'" unless ( defined &DATE_STYLE );
+    eval "use constant DATE_STYLE => 'phutaba'" unless ( defined &DATE_STYLE );
     eval "use constant DISPLAY_ID => 0"        unless ( defined &DISPLAY_ID );
     eval "use constant EMAIL_ID => 'Heaven'"   unless ( defined &EMAIL_ID );
     eval "use constant TRIPKEY => '!'"         unless ( defined &TRIPKEY );
@@ -178,7 +178,6 @@ BEGIN {
     eval "use constant REDIR_DIR => 'redir/'"  unless ( defined &REDIR_DIR );
     eval "use constant HTML_SELF => 'wakaba.html'"
       unless ( defined &HTML_SELF );
-    eval "use constant JS_FILE => 'wakaba3.js'" unless ( defined &JS_FILE );
     eval "use constant CSS_DIR => 'static/css/'" unless ( defined &CSS_DIR );
     eval "use constant ERRORLOG => ''"          unless ( defined &ERRORLOG );
     eval "use constant CONVERT_COMMAND => 'convert'"

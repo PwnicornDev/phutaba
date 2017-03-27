@@ -1,0 +1,14 @@
+[% META
+   title   = 'IRC-Channel'
+%]
+
+	<header class="title">Hinweis</header>
+	<div class="info">
+		<p>Unseren IRC-Channel <strong>#ernstchan</strong> findet man im Netzwerk <a href="http://www.hackint.eu/">hackint</a> unter <a href="irc://irc.ernstchan.com:9999/ernstchan">irc.ernstchan.com:9999</a> (SSL).</p>
+		<p>Um ihn zu betreten, kannst du entweder den Webchat unten oder einen eigenen Client benutzen, wie z. B. <a href="http://www.irssi.org/">Irssi</a>, <a href="http://www.hexchat.org/">HexChat</a> oder <a href="http://codeux.com/textual/">Textual</a>.</p>
+	</div>
+
+	<header class="title">Webchat</header>
+	<div class="info">
+		<iframe src="https://kiwiirc.com/client/irc.hackint.eu/?nick=Ernst|?#ernstchan" style="border:0; width:100%; height:450px;"></iframe>
+	</div>

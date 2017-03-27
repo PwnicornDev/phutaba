@@ -183,7 +183,7 @@ ul.menu li a:active, ul.menu_bottom li a:active {
 	border-spacing: 0.25em;
 }
 
-.postarea  #textField  img:hover, .postarea  #fileUploadField img:hover {
+.postarea #fileInput img:hover {
 	cursor: pointer;
 }
 
@@ -394,6 +394,7 @@ blockquote.unkfunc, span.quote {
 
 .ban, .tldr, .user_banned {
 	margin-top: 1em;
+	padding-top: 0;
 }
 
 .ban, .user_banned {

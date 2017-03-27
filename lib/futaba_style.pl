@@ -31,7 +31,7 @@ use constant DURATION_SELECT_INCLUDE => q{
 use constant NORMAL_HEAD_INCLUDE => q{
 
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<const BOARD_LANG>">
 <head>
 <meta charset="<const CHARSET>" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -105,7 +105,7 @@ use constant NORMAL_HEAD_INCLUDE => q{
 	</ul>
 
 	<ul class="menu right">
-} . include("tpl/nav_pages.html") . q{
+} . include("tpl/nav_pages." . BOARD_LANG . ".html") . q{
 	</ul>
 </nav>
 
@@ -170,42 +170,43 @@ use constant NORMAL_FOOT_INCLUDE => q{
 <script type="text/javascript" src="/static/js/hidethreads.js"></script>
 </if>
 
-<if $postform><script type="text/javascript">set_inputs("postform")</script></if>
-<script type="text/javascript">set_delpass("delform")</script>
-
 <script type="text/javascript">
 /* <![CDATA[ */
+  <if $postform>set_inputs("postform");</if>
+  set_delpass("delform");
+
+  var board = '<const BOARD_IDENT>';
+  var thread_id = <if $thread><var $thread></if><if !$thread>null</if>;
+  var filetypes = '<var get_filetypes()>';
+  var msg_remove_file = '<const S_JS_REMOVEFILE>';
+  var msg_show_thread1 = '<const S_JS_SHOWTHREAD1>';
+  var msg_show_thread2 = '<const S_JS_SHOWTHREAD2>';
+
   $j = jQuery.noConflict();
   $j(document).ready(function() {
     var match;
     if ((match = /#i([0-9]+)/.exec(document.location.toString())) && !document.forms.postform.field4.value) insert(">>" + match[1] + "\n");
-    if ((match = /#([0-9]+)/.exec(document.location.toString()))) highlight(match[1]);
+
     $j('#postform_submit').click(function() {
         $j('.postarea').block({
-                message: 'Bitte warten &hellip;',
+                message: '<const S_JS_PLEASEWAIT>',
                 css: { fontSize: '2em', color: '#000000', background: '#D7CFC0', border: '1px solid #BFB5A1' },
         });
         setTimeout($j.unblockUI, 5000);
     });
 
-        <if $thread>
-        $j('#delform').delegate('span.reflink a', 'click', function (ev) {
-                var a = ev.target,
-                        sel = window.getSelection().toString();
-                ev.preventDefault();
-                insert('>>' + a.href.match(/#i(\d+)$/)[1] + '\n' + (sel ? '>' + sel.replace(/\n/g, '\n>') + '\n' : ''));
-        });
-        </if>
+    <if $thread>
+    $j('#delform').delegate('span.reflink a', 'click', function (ev) {
+        var a = ev.target,
+            sel = window.getSelection().toString();
+        ev.preventDefault();
+        insert('>>' + a.href.match(/#i(\d+)$/)[1] + '\n' + (sel ? '>' + sel.replace(/\n/g, '\n>') + '\n' : ''));
+    });
+    </if>
 
-        <if ENABLE_HIDE_THREADS && !$thread>hideThreads('<const BOARD_IDENT>', $j);</if>
+    <if ENABLE_HIDE_THREADS && !$thread>hideThreads('<const BOARD_IDENT>', $j);</if>
   });
 /* ]]> */
-</script>
-
-<script type="text/javascript">
-        var board = '<const BOARD_IDENT>', thread_id = <if $thread><var $thread></if><if !$thread>null</if>;
-        var filetypes = '<var get_filetypes()>';
-        var msg_remove_file = '<const S_JS_REMOVEFILE>';
 </script>
 
 <if ENABLE_WEBSOCKET_NOTIFY && $thread && !$locked><script type="text/javascript" src="/static/js/websock.js"></script></if>
@@ -235,17 +236,17 @@ use constant PAGE_TEMPLATE => compile_template(
 	</div>	
 
 	<table>
-	<tbody id="postTableBody">
+	<tbody>
 		<if $admin>
 			<tr><td class="postblock">## Team ##</td>
 			<td><label><input type="checkbox" name="as_staff" value="1" />  <const S_POSTASADMIN></label></td></tr>
 			<tr><td class="postblock">HTML</td>
 			<td><label><input type="checkbox" name="no_format" value="1" /> <const S_NOTAGS2></label></td></tr>
 		</if>
-	<if !FORCED_ANON or $admin><tr><td class="postblock"><label for="name"><const S_NAME></label></td><td><input type="text" name="field1" id="name" /></td></tr></if>
+	<if !FORCED_ANON or $admin><tr><td class="postblock"><label for="name"><const S_NAME></label></td><td><input type="text" name="field1" id="name" maxlength="<const MAX_FIELD_LENGTH>" /></td></tr></if>
 
-	<tr><td class="postblock"><label for="subject"><const S_SUBJECT></label></td><td><input type="text" name="field3" id="subject" />
-	<input type="submit" id="postform_submit" value="<if $thread><const S_BTREPLY> /<var BOARD_IDENT>/<var $thread></if><if !$thread><const S_BTNEWTHREAD></if>" /></td>
+	<tr><td class="postblock"><label for="subject"><const S_SUBJECT></label></td><td><input type="text" name="field3" id="subject" maxlength="<const MAX_FIELD_LENGTH>" />
+	<input type="submit" id="postform_submit" value="<if $thread><var sprintf S_BTREPLY, '/' . BOARD_IDENT . '/' . $thread></if><if !$thread><const S_BTNEWTHREAD></if>" /></td>
 	</tr>
 
 	<if $thread>
@@ -259,13 +260,13 @@ use constant PAGE_TEMPLATE => compile_template(
 	</td></tr>
 
 	<if $image_inp>
-		<tr id="fileUploadField"><td class="postblock"><const S_UPLOADFILE> (max. <const MAX_FILES>)</td>
+		<tr><td class="postblock"><const S_UPLOADFILE> (max. <const MAX_FILES>)</td>
 		<td id="fileInput"><div><input type="file" name="file" onchange="file_input_change(<const MAX_FILES>)" /></div>
 		<if $textonly_inp>[<label><input type="checkbox" name="nofile" value="on" /><const S_NOFILE> ]</label></if>
 		</td></tr>
 	</if>
 
-	<tr id="trgetback"><td class="postblock"><const S_NOKO></td>
+	<tr><td class="postblock"><const S_NOKO></td>
 	<td>
 	<label><input name="gb2" value="board" checked="checked" type="radio" /> <const S_NOKOOFF></label>
 	<label><input name="gb2" value="thread" type="radio" /> <const S_NOKOON></label>
@@ -273,10 +274,10 @@ use constant PAGE_TEMPLATE => compile_template(
 
 	<if $captcha_inp>
 		<tr><td class="postblock"><label for="captcha"><const S_CAPTCHA></label> (<a href="/faq">?</a>) (<var $loc>)</td>
-		<td><input type="text" name="captcha" id="captcha" size="10" /> <img alt="" src="/captcha.pl?key=<var get_captcha_key($thread)>&amp;dummy=<var $dummy>&amp;board=<var BOARD_IDENT>" /></td></tr>
+		<td><input type="text" name="captcha" id="captcha" size="10" /> <img alt="" src="/<const CAPTCHA_SCRIPT>?key=<var get_captcha_key($thread)>&amp;dummy=<var $dummy>&amp;board=<const BOARD_IDENT>" /></td></tr>
 	</if>
 
-	<tr id="passwordField"><td class="postblock"><label for="password"><const S_DELPASS></label></td><td><input type="password" name="password" id="password" /> <const S_DELEXPL></td></tr>
+	<tr><td class="postblock"><label for="password"><const S_DELPASS></label></td><td><input type="password" name="password" id="password" /> <const S_DELEXPL></td></tr>
 	<tr><td colspan="2">
 	<div class="rules">} . include(BOARD_IDENT . "/rules.html") . q{</div></td></tr>
 	</tbody>
@@ -340,6 +341,9 @@ use constant PAGE_TEMPLATE => compile_template(
 <if $thread>
 	<nav>
 		<ul class="pagelist">
+			<li>[<a href="/<const BOARD_IDENT>/"><const S_RETURN></a>]</li>
+		</ul>
+		<ul class="pagelist">
 			<li>[<a href="#top"><const S_TOP></a>]</li>
 		</ul>
 	</nav>
@@ -391,7 +395,7 @@ use constant SEARCH_TEMPLATE => compile_template(
 
 	<if $find>
 		<hr />
-		<var S_SEARCHFOUND> <var $count>
+		<const S_SEARCHFOUND> <var $count>
 		<if $count><br /><br /></if>
 	</if>
 
@@ -414,7 +418,7 @@ use constant SINGLE_POST_TEMPLATE => compile_template(q{
 use constant ERROR_HEAD_INCLUDE => q{
 
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<const BOARD_LANG>">
 <head>
 	<meta charset="<const CHARSET>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -438,7 +442,7 @@ use constant ERROR_HEAD_INCLUDE => q{
 	</ul>
 
 	<ul class="menu right">
-} . include("tpl/nav_pages.html") . q{
+} . include("tpl/nav_pages." . BOARD_LANG . ".html") . q{
 	</ul>
 </nav>
 
@@ -477,17 +481,17 @@ use constant ERROR_TEMPLATE => compile_template(
 <img src="/img/ernstwurf_schock.png" width="210" height="210" style="float: right;" />
 
 <loop $bans>
- Deine IP-Adresse <strong><var $ip></strong>
- <if $showmask>(Netz <var $network>/<var $setbits>)</if> wurde
- <if $reason>mit folgender Begr&uuml;ndung gesperrt:<br /><strong><var $reason></strong></if>
- <if !$reason>gesperrt.</if>
- <br /><br />Diese Sperrung 
- <if $expires>l&auml;uft am <strong><var make_date($expires, 'phutaba')></strong> ab.</if>
- <if !$expires>gilt f&uuml;r unbestimmte Zeit.</if>
+ <const S_BANNEDIP> <strong><var $ip></strong>
+ <if $showmask>(<const S_BANNEDNET> <var $network>/<var $setbits>)</if>
+ <if $reason><const S_BANNEDREASON><br /><strong><var $reason></strong></if>
+ <if !$reason><const S_BANNEDNOREASON></if>
+ <br /><br />
+ <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, DATE_STYLE, S_WEEKDAYS, S_MONTHS)></if>
+ <if !$expires><const S_BANNEDNOEXPIRE></if>
  <br />
 </loop>
 
- <br />Bitte kontaktiere uns im IRC, wenn du wieder posten willst!
+ <br /><const S_BANNEDCONTACT>
 </div>
 </if>
 
@@ -517,7 +521,7 @@ use constant ADMIN_LOGIN_TEMPLATE => compile_template(
 <option value="bans"><const S_MANABANS></option>
 <option value="orphans"><const S_MANAORPH></option>
 </select>
-<input type="submit" value="<const S_MANASUB>" />
+<input type="submit" value="<const S_MANALOGIN>" />
 </form></div>
 
 } . NORMAL_FOOT_INCLUDE
@@ -556,6 +560,7 @@ use constant POST_PANEL_TEMPLATE => compile_template(
 </div><br />
 
 <var sprintf S_IMGSPACEUSAGE, get_displaysize($size, DECIMAL_MARK), $files, $posts, $threads>
+<var sprintf S_POSTSTATS, make_date($o_date, '2ch'), $oldest, make_date($n_date, '2ch'), $newest>
 
 } . NORMAL_FOOT_INCLUDE
 );

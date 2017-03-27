@@ -59,7 +59,7 @@ function do_ban(ip, postid, board) {
 						$j("span#r_post").html(data['postid'] ? data['postid'] : "<i>none</i>");
 						$j("#infobox").show('normal');
 
-						show_info("User wurde gesperrt");
+						show_info(data['info_msg']);
 					} else if (data['error_msg']) {
 						show_error(data['error_msg']);
 					}
@@ -112,7 +112,7 @@ function do_ban(ip, postid, board) {
 				$j("#reason").attr('disabled', false).focus();
 				$j("#info").hide('normal');
 			} else if (data['results'] >= 1) {
-				show_info("User wurde bereits gesperrt");
+				show_info(data['info_msg']);
 			} else if (data['error_msg']) {
 				show_error(data['error_msg']);
 			}

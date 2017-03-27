@@ -26,6 +26,10 @@ my $protocol_re = qr{(?:http://|https://|ftp://|mailto:|news:|irc:)};
 my $url_re =
 qr{(${protocol_re}[^\s<>()"]*?(?:\([^\s<>()"]*?\)[^\s<>()"]*?)*)((?:\s|<|>|"|\.||\]|!|\?|,|&#44;|&quot;)*(?:[\s<>()"]|$))};
 
+sub protocol_regexp { return $protocol_re }
+
+sub url_regexp { return $url_re }
+
 sub get_meta {
 	my ($file, $charset, @tagList) = @_;
 	my (%data, $exifData);
@@ -76,48 +80,12 @@ sub get_archive_content {
 }
 
 sub get_meta_markup {
-	my ($file, $charset) = @_;
+	my ($file, $charset, @loc_tags) = @_;
 	my ($exifData, $info, $archive, $markup, @metaOptions);
-	my %options = (	"FileSize" => "Dateigr&ouml;&szlig;e",
-			"FileType" => "Dateityp",
-			"ImageSize" => "Aufl&ouml;sung", 
-			"ModifyDate" => "&Auml;nderungsdatum",
-			"Comment" => "Kommentar", 
-			"Comment-xxx" => "Kommentar (2)",
-			"CreatorTool" => "Erstellungstool", 
-			"Software" => "Software", 
-			"MIMEType" => "Inhaltstyp",
-			"Producer" => "Software", 
-			"Creator" => "Generator", 
-			"Author" => "Autor", 
-			"Subject" => "Betreff", 
-			"PDFVersion" => "PDF-Version", 
-			"PageCount" => "Seiten", 
-			"Title" => "Titel", 
-			"Duration" => "L&auml;nge", 
-			"Artist" => "Interpret", 
-			"AudioBitrate" => "Bitrate", 
-			"ChannelMode" => "Kanalmodus", 
-			"Compression" => "Kompressionsverfahren", 
-			"FrameCount" => "Frames",
-			"Vendor" => "Library-Hersteller",
-			"Album" => "Album",
-			"Genre" => "Genre",
-			"Composer" => "Komponist",
-			"Model" => "Modell",
-			"Maker" => "Hersteller",
-			"OwnerName" => "Besitzer",
-			"CanonModelID" => "Canon-eigene Modellnummer",
-			"UserComment" => "Kommentar (3)",
-			"GPSPosition" => "Position",
-			"Publisher" => "Herausgeber",
-			"Language" => "Sprache",
-			"AudioChannels" => "Audio-Kan&auml;le",
-			"Channels" => "Kan&auml;le",
-			"VideoFrameRate" => "Bildrate",
-	);
+	my %options = @loc_tags;
+
 	foreach (keys %options) {
-		push(@metaOptions, $_);
+		push(@metaOptions, $_) unless (substr($_, 0, 3) eq "LC_");
 	}
 
 	# file names and file sizes inside archives (rar, zip)
@@ -131,10 +99,10 @@ sub get_meta_markup {
 
 	# extract additional information for documents or animation/video/audio or archives
 	if (defined($$exifData{PageCount})) {
-		if ($$exifData{PageCount} eq 1) {
-			$info = "1 Seite";
+		if ($$exifData{PageCount} == 1) {
+			$info = $options{LC_1Page};
 		} else {
-			$info = $$exifData{PageCount} . " Seiten";
+			$info = sprintf($options{LC_Pages}, $$exifData{PageCount});
 		}
 	}
 	if (defined($$exifData{Duration})) {
@@ -159,14 +127,14 @@ sub get_meta_markup {
 		my @filelist = get_archive_content($exifData);
 		my $filecount = @filelist;
 		if ($filecount == 1) {
-			$info = "1 Datei"
+			$info = $options{LC_1File};
 		} else {
-			$info = $filecount . " Dateien";
+			$info = sprintf($options{LC_Files}, $filecount);
 		}
 		splice(@filelist, $max_visible, $filecount - $max_visible,
-			"<em>(" . ($filecount - $max_visible) . " weitere nicht angezeigt)</em>")
+			sprintf($options{LC_Omitted}, ($filecount - $max_visible)))
 			if ($filecount > $max_visible + 1);
-		my $header = "<hr /><strong>Archiv mit $info:</strong>";
+		my $header = "<hr />" . sprintf($options{LC_Archive}, $info);
 		$archive = join("<br />", $header, @filelist);
 	}
 
@@ -189,7 +157,7 @@ sub get_meta_markup {
 		}
 	}
 
-	$$exifData{Codec} = join(", ", @codecs) if (@codecs);
+	$$exifData{$options{LC_Codec}} = join(", ", @codecs) if (@codecs);
 
 	$markup .= "<hr />" if (%$exifData);
 	foreach (sort keys %$exifData) {
@@ -199,10 +167,6 @@ sub get_meta_markup {
 
 	return ($info, $markup);
 }	
-
-sub protocol_regexp { return $protocol_re }
-
-sub url_regexp { return $url_re }
 
 sub get_geolocation($) {
 	my ($ip) = @_;
@@ -296,13 +260,23 @@ sub count_lines($) {
 sub abbreviate_html {
     my ( $html, $max_lines, $approx_len ) = @_;
     my ( $lines, $chars, @stack );
-    $lines = 0;
+
     return undef unless ($max_lines);
 
     while ( $html =~ m!(?:([^<]+)|<(/?)(\w+).*?(/?)>)!g ) {
-        my ( $text, $closing, $tag, $implicit ) = ( $1, $2, $3, $4 );
-        $tag = lc($tag) if defined;
-        if ($text) { $chars += length $text; }
+        my ( $text, $closing, $tag, $implicit ) = ( $1, $2, lc($3), $4 );
+
+        if ($text) {
+			my $text_len = length $text;
+			$chars += $text_len;
+
+			# detect one single too long line (without tags)
+			if (int( $text_len / $approx_len ) > $max_lines) {
+				my $abbrev = substr $html, 0, pos($html) - $text_len + $approx_len * $max_lines;
+				while ( my $tag = pop @stack ) { $abbrev .= "</$tag>" }
+				return $abbrev;
+			}
+		}
         else {
             push @stack, $tag if ( !$closing and !$implicit );
             pop @stack if ($closing);
@@ -323,14 +297,15 @@ sub abbreviate_html {
                 $chars = 0;
             }
             if ( $lines >= $max_lines ) {
-
                 # check if there's anything left other than end-tags
                 return undef
                   if ( substr $html, pos $html ) =~ m!^(?:\s*</\w+>)*\s*$!s;
 
                 my $abbrev = substr $html, 0, pos $html;
+
 				# remove newlines from the end of the comment before closing tags
 				$abbrev =~ s/(<br ?\/>)+$//;
+
                 while ( my $tag = pop @stack ) { $abbrev .= "</$tag>" }
 
                 return $abbrev;
@@ -1186,12 +1161,13 @@ sub process_tripcode {
 }
 
 sub make_date {
-    my ( $time, $style, @locdays ) = @_;
+    my ($time, $style, $locdays, $locmonths) = @_;
     my @days   = qw(So Mo Di Mi Do Fr Sa);
     my @months = qw(Jan Feb Mrz Apr Mai Jun Jul Aug Sep Okt Nov Dez);
     my @fullmonths =
       qw(Januar Februar M&auml;rz April Mai Juni Juli August September Oktober November Dezember);
-    @locdays = @days unless (@locdays);
+	@days = split(" ", $locdays) if ($locdays);
+	@fullmonths = split(" ", $locmonths) if ($locmonths);
 
 	if ($style eq "phutaba") {
 		my @ltime = localtime($time);
@@ -1200,7 +1176,18 @@ sub make_date {
 			$ltime[3],
 			$fullmonths[$ltime[4]],
 			$ltime[5] + 1900,
-			$locdays[$ltime[6]],
+			$days[$ltime[6]],
+			$ltime[2], $ltime[1], $ltime[0]
+		);
+	}
+	elsif ($style eq "phutaba-en") {
+		my @ltime = localtime($time);
+
+		return sprintf("%s %d, %d (%s.) %02d:%02d:%02d",
+			$fullmonths[$ltime[4]],
+			$ltime[3],
+			$ltime[5] + 1900,
+			$days[$ltime[6]],
 			$ltime[2], $ltime[1], $ltime[0]
 		);
 	}
@@ -1218,7 +1205,7 @@ sub make_date {
 		my @ltime=localtime($time);
 
 		return sprintf("%02d.%02d.%02d (%s) %02d:%02d",
-		$ltime[3],$ltime[4]+1,$ltime[5]-100,$locdays[$ltime[6]],$ltime[2],$ltime[1]);
+		$ltime[3],$ltime[4]+1,$ltime[5]-100,$days[$ltime[6]],$ltime[2],$ltime[1]);
     }
     elsif ( $style eq "localtime" ) {
         return scalar( localtime($time) );
@@ -1234,6 +1221,9 @@ sub make_date {
     }
     elsif ( $style eq "http" ) {
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime($time);
+		@days   = qw(Sun Mon Tue Wed Thu Fri Sat);
+		@months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+
         return sprintf(
             "%s, %02d %s %04d %02d:%02d:%02d GMT",
             $days[$wday], $mday, $months[$mon], $year + 1900,
@@ -1255,18 +1245,6 @@ sub make_date {
     elsif ( $style eq "month" ) {
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime($time);
         return sprintf( "%s %d", $months[$mon], $year + 1900 );
-    }
-    elsif ( $style eq "2ch-sep93" ) {
-        my $sep93 = timelocal( 0, 0, 0, 1, 8, 93 );
-        return make_date( $time, "2ch" ) if ( $time < $sep93 );
-
-        my @ltime = localtime($time);
-
-        return sprintf(
-            "%04d-%02d-%02d %02d:%02d",
-            1993, 9, int( $time - $sep93 ) / 86400 + 1,
-            $ltime[2], $ltime[1]
-        );
     }
 }
 
@@ -2047,6 +2025,20 @@ sub get_pretty_html($$) {
 	return $text;
 }
 
+sub get_post_flag($) {
+	my ($data) = @_;
+	my @items = split(/<br \/>/, $data);
+	return '' unless (@items);
+
+	# country flag
+	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2' or $items[0] eq 'v6');
+	my $flagfile = 'img/flags/' . $items[0] . '.PNG';
+	my $ballfile = 'img/balls/' . lc($items[0]) . '.PNG';
+	$flagfile = $ballfile if (-f $ballfile);
+	my $flag = '<img src="/' . $flagfile . '" title="' . $items[0] . '" alt="' . $items[0] . '" />';
+	return $flag;
+}
+
 sub get_post_info($$) {
 	my ($data, $board) = @_;
 	my @items = split(/<br \/>/, $data);
@@ -2054,7 +2046,7 @@ sub get_post_info($$) {
 
 	# country flag
 	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2');
-	my $flag = '<img src="/img/flags/' . $items[0] . '.PNG"> ';
+	my $flag = '<img src="/img/flags/' . $items[0] . '.PNG" alt="" /> ';
 
 	if (scalar @items == 1) { # for legacy entries
 		return $flag . $items[0];
@@ -2068,7 +2060,7 @@ sub get_post_info($$) {
 		$items[4] .= ' [<a href="' . $ENV{SCRIPT_NAME}
 			. '?task=addstring&amp;type=asban&amp;board=' . $board
 			. '&amp;string=' . $1
-			. '&amp;comment=' . urlenc($items[4]) . '">Sperren</a>]';
+			. '&amp;comment=' . urlenc($items[4]) . '">Ban</a>]';
 
 		return $flag . $location . '<br />' . $items[4];
 	}

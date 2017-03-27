@@ -71,6 +71,8 @@ function showThread(tid, bid, $j) {
 function getHiddenHTML(tid, bid) {
 	return '<div class="show_' + tid + ' togglethread">'
 		+ '<a class="hide" onclick="showThread(\'' + tid + '\', \'' + bid + '\', $j);">'
-		+ '<img src="/img/icons/show.png" width="16" height="16" alt="Thread ' + tid + ' einblenden" />'
-		+ ' <strong>Thread ' + tid + '</strong> einblenden</a></div>';
+		+ '<img src="/img/icons/show.png" width="16" height="16" alt="'
+		+ msg_show_thread1 + tid + msg_show_thread2 + '" />'
+		+ ' <strong>' + msg_show_thread1 + tid + '</strong>'
+		+ msg_show_thread2 + '</a></div>';
 };

@@ -24,6 +24,7 @@ use constant BOARD_IDENT => 'board';
 #use constant BOARD_NAME => '&#120176;&#120215;&#120211;&#120216;&#120217;&#120200;&#120205;&#120198;&#120211;';
 use constant BOARD_NAME => 'Ernstchan';
 use constant BOARD_DESC => 'Gesch&auml;ft wie &uuml;blich';
+#use constant BOARD_LANG => 'en';					# Set board language
 #use constant STYLESHEET => "/static/css/[board].css";	# additional board specific styles
 use constant SHOWTITLETXT => 1;				# Show TITLE at top (1: yes  0: no)
 use constant SHOWTITLEIMG => 0;				# Show image at top (0: no, 1: single, 2: rotating)
@@ -36,6 +37,7 @@ use constant REPLIES_PER_THREAD => 4;			# Replies shown
 use constant IMAGE_REPLIES_PER_THREAD => 0;	# Number of image replies per thread to show, set to 0 for no limit.
 use constant REPLIES_PER_STICKY_THREAD => 2; # Replies shown per sticky thread
 use constant IMAGE_REPLIES_PER_STICKY_THREAD => 0; # Number of image replies per sticky thread to show, set to 0 for no limit.
+#use constant SHOW_FLAGS => 1;				# Show public country flags in post headers (requires Geo::IP)
 use constant S_ANONAME => 'Ernst';			# Defines what to print if there is no text entered in the name field
 use constant S_ANOTEXT => '';					# Defines what to print if there is no text entered in the comment field
 use constant S_ANOTITLE => '';					# Defines what to print if there is no text entered into subject field
@@ -61,14 +63,6 @@ use constant MAX_IMAGE_PIXELS => 50000000000;		# Maximum width*height of image b
 # Captcha
 #use constant CAPTCHA_MODE => 2; # Require captcha for posting (0: never, 1: always, 2: on - except for countries in CAPTCHA_SKIP)
 #use constant CAPTCHA_SKIP => 'DE AT CH'; # Country codes that do not require a captcha for posting if CAPTCHA_MODE is 2
-use constant SQL_CAPTCHA_TABLE => 'captcha';	# Global captcha table for all boards
-use constant CAPTCHA_LIFETIME => 300;			# Captcha lifetime in seconds
-use constant CAPTCHA_SCRIPT => 'captcha.pl';
-use constant CAPTCHA_HEIGHT => 18;
-use constant CAPTCHA_SCRIBBLE => 0.0;
-use constant CAPTCHA_SCALING => 0.15;
-use constant CAPTCHA_ROTATION => 0.3;
-use constant CAPTCHA_SPACING => 2.5;
 
 # Tweaks
 use constant THUMBNAIL_SMALL => 1;				# Thumbnail small images (1: yes, 0: no)
@@ -94,7 +88,7 @@ use constant CHARSET => 'utf-8';				# Character set to use, typically 'utf-8' or
 use constant CONVERT_CHARSETS => 1;			# Do character set conversions internally
 use constant TRIM_METHOD => 0;					# Which threads to trim (0: oldest - like futaba 1: least active - furthest back)
 use constant ARCHIVE_MODE => 0;				# Old images and posts are moved into an archive dir instead of deleted (0: no 1: yes). It is HIGHLY RECOMMENDED you use TRIM_METHOD => 1 with this, or you may end up with unreferenced pictures in your archive
-use constant DATE_STYLE => 'futaba';			# Date style ('futaba', '2ch', 'localtime', 'tiny')
+use constant DATE_STYLE => 'phutaba';			# Date style ('phutaba', 'phutaba-en', 'futaba', '2ch', 'localtime', 'tiny')
 #use constant DISPLAY_ID => '';					# How to display user IDs (0 or '': don't display,
 												#  'day' and 'board' in any combination: make IDs change for each day or board,
 												#  'mask': display masked IP address (similar IPs look similar, but are still encrypted)
@@ -117,10 +111,10 @@ use constant THUMB_DIR => 'thumb/';			# Thumbnail directory (needs to be writeab
 use constant RES_DIR => 'res/';				# Reply cache directory (needs to be writeable by the script)
 use constant REDIR_DIR => 'redir/';			# Redir directory, used for redirecting clients when load balancing
 use constant HTML_SELF => 'wakaba.pl';
-use constant JS_FILE => 'wakaba.js';			# Location of the js file
 use constant ERRORLOG => '';					# Writes out all errors seen by user, mainly useful for debugging
 use constant CONVERT_COMMAND => 'convert';		# location of the ImageMagick convert command (usually just 'convert', but sometime a full path is needed)
 #use constant CONVERT_COMMAND => '/usr/X11R6/bin/convert';
+#use constant VIDEO_CONVERT_COMMAND => 'avconv';
 
 # Icons for filetypes - file extensions specified here will not be renamed, and will get icons
 # (except for the built-in image formats). These example icons can be found in the extras/ directory.

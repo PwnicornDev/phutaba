@@ -1,10 +1,9 @@
 #!/usr/bin/perl -X
 
+use strict;
+
 use CGI::Carp qw(fatalsToBrowser set_message);
 
-#umask 0022;    # Fix some problems
-
-use strict;
 use CGI;
 use DBI;
 use Net::DNS; # DNSBL request
@@ -68,6 +67,17 @@ BEGIN {
     set_message( \&handler_errors );
 }
 
+## temporary debug profiling
+my ($has_timer, $has_timer_start, $has_timer_output);
+BEGIN {
+	eval 'use Time::HiRes';
+	unless ($@) {
+		$has_timer = Time::HiRes::gettimeofday();
+		$has_timer_start = $has_timer;
+		$has_timer_output = '';
+	}
+}
+
 #
 # Import settings
 #
@@ -96,11 +106,12 @@ BEGIN {
 		print "Content-Type: text/plain\n\nUnknown board.\n";
 		exit;
 	}
-
-	require "site_config.pl";
 	require $board . "/config.pl";
+	require "site_config.pl";
 	require "config_defaults.pl";
-	require "strings_de.pl"; # need some good replacement
+}
+BEGIN {
+	require "strings_" . BOARD_LANG . ".pl";
 	require "wakautils.pl";
 	require "futaba_style.pl";
 	require "captcha.pl";
@@ -116,18 +127,6 @@ if (CONVERT_CHARSETS) {
     eval 'use Encode qw(decode encode)';
     $has_encode = 1 unless ($@);
 }
-
-## temporary debug profiling
-my ($has_timer, $has_timer_start, $has_timer_output);
-BEGIN {
-	eval 'use Time::HiRes';
-	unless ($@) {
-		$has_timer = Time::HiRes::gettimeofday();
-		$has_timer_start = $has_timer;
-		$has_timer_output = '';
-	}
-}
-
 
 #
 # Global init
@@ -610,9 +609,6 @@ sub output_page {
 			# create ref-links
 			$$post{comment} = resolve_reflinks($$post{comment});
 
-			## temporary debug code for testing sub count_lines()
-			#my $debug_comment = $$post{comment};
-
             my $abbreviation =
               abbreviate_html( $$post{comment}, MAX_LINES_SHOWN,
                 APPROX_LINE_LENGTH );
@@ -621,9 +617,6 @@ sub output_page {
                 $$post{comment_full} = $$post{comment};
                 $$post{comment} = $abbreviation;
             }
-
-			## temporary debug code for testing sub count_lines()
-			#$$post{comment} .= debug_line_count($debug_comment) if ($isAdmin);
         }
     }
 
@@ -694,7 +687,7 @@ sub get_omit_message($$) {
 
 sub get_abbrev_message($) {
 	my ($lines) = @_;
-	return S_ABBRTEXT1 if ($lines == 1);
+	return S_ABBRTEXT1 if ($lines <= 1); # oh well
 	return sprintf(S_ABBRTEXT2, $lines);
 }
 
@@ -723,10 +716,6 @@ sub show_thread {
 
     while ( $row = get_decoded_hashref($sth) ) {
 		$$row{comment} = resolve_reflinks($$row{comment});
-
-		## temporary debug code for testing sub count_lines()
-		#$$row{comment} .= debug_line_count($$row{comment}) if ($isAdmin);
-
         push( @thread, $row );
     }
     make_error(S_NOTHREADERR, 1) if ( !$thread[0] or $thread[0]{parent} );
@@ -842,6 +831,12 @@ sub resolve_reflinks($) {
 		if ($res) { '<span class="backreflink"><a href="'.get_reply_link($$res{num},$$res{parent}).'">&gt;&gt;'.$1.'</a></span>' }
 		else { '<span class="backreflink"><del>&gt;&gt;'.$1.'</del></span>'; }
 	|ge;
+
+	$comment =~ s|<!--reflink-->&gt;&gt;/([\wäöü]+)/([0-9]+)|
+		my $res = get_board_post($1,$2);
+		if ($res) { '<span class="boardreflink"><a href="'.get_reply_link($$res{num},$$res{parent},$1).'">&gt;&gt;/'.$1.'/'.$2.'</a></span>' }
+		else { '<span class="backreflink"><del>&gt;&gt;/'.$1.'/'.$2.'</del></span>'; }
+	|e for 1 .. 10;
 
 	return $comment;
 }
@@ -1500,14 +1495,16 @@ sub format_comment {
 
     # hide >>1 references from the quoting code
     $comment =~ s/&gt;&gt;([0-9\-]+)/&gtgt;$1/g;
+    $comment =~ s|&gt;&gt;(/[\wäöü]+/[0-9\-]+)|&gtgt;$1|g;
 
     my $handler = sub    # mark >>1 references
     {
         my $line = shift;
 
-		# ref-links will be resolved on every page creation to support links to deleted (and also future) posts.
-		# ref-links are marked with a html-comment and checked/generated on every page output.
+		# references are prefixed with a html comment and will be resolved on
+		# every page creation to support links to deleted (and also future) posts
 		$line =~ s/&gtgt;([0-9]+)/<!--reflink-->&gt;&gt;$1/g;
+		$line =~ s|&gtgt;(/[\wäöü]+/[0-9]+)|<!--reflink-->&gt;&gt;$1|g;
 
         return $line;
     };
@@ -1661,7 +1658,7 @@ sub get_post {
     my ($thread) = @_;
     my ($sth);
 
-    $sth = $dbh->prepare( "SELECT * FROM " . SQL_TABLE . " WHERE num=?;" )
+    $sth = $dbh->prepare( "SELECT num, parent FROM " . SQL_TABLE . " WHERE num=?;" )
       or make_error(S_SQLFAIL);
     $sth->execute($thread) or make_error(S_SQLFAIL);
 
@@ -1678,6 +1675,31 @@ sub get_parent_post {
     $sth->execute($thread) or make_error(S_SQLFAIL);
 
     return $sth->fetchrow_hashref();
+}
+
+sub get_board_post {
+	my ($board, $post) = @_;
+	my ($sth, $contents);
+	$board =~ s/[\*<>|?&]//g; # remove special characters
+	$board =~ s/.*[\\\/]//; # remove any leading path
+
+	my $cfgfile = $board . "/config.pl";
+	return 0 unless (-d $board and -f $cfgfile);
+
+	open BOARDCFG, $cfgfile or return 0;
+	$contents .= $_ while (<BOARDCFG>);
+	close BOARDCFG;
+
+	if ($contents =~
+		/^\s*use\s+constant\s+SQL_TABLE\s*=>\s*(?:'|")([^'"]+)(?:'|")\s*;/m ) {
+
+		$sth = $dbh->prepare( "SELECT num, parent FROM " . $1 . " WHERE num=?;" )
+			or make_error(S_SQLFAIL);
+		$sth->execute($post) or make_error(S_SQLFAIL);
+
+		return $sth->fetchrow_hashref();
+	}
+	return 0;
 }
 
 sub sage_count {
@@ -1937,7 +1959,7 @@ sub process_file {
     #		}
     #	}
 
-	my ($info, $info_all) = get_meta_markup($filename, CHARSET);
+	my ($info, $info_all) = get_meta_markup($filename, CHARSET, TOOLTIP_TAGS);
     return ($filename, $md5, $width, $height, $thumbnail, $tn_width, $tn_height, $info, $info_all, $uploadname);
 }
 
@@ -2068,7 +2090,7 @@ sub delete_post {
 
             # remove files from comment and possible replies
             $sth = $dbh->prepare(
-                    "SELECT image,thumbnail FROM " . SQL_TABLE_IMG . " WHERE post=? OR thread=?;" )
+                    "SELECT image, thumbnail FROM " . SQL_TABLE_IMG . " WHERE post=? OR thread=?;" )
               or make_error(S_SQLFAIL);
             $sth->execute( $post, $post ) or make_error(S_SQLFAIL);
 
@@ -2191,7 +2213,7 @@ sub make_admin_post_panel {
 	unless ($@) {
 		eval '$api = Geo::IP->api';
 
-		$api .= ' (IPv6-Lookups erfordern CAPI)' unless ($api eq 'CAPI');
+		$api .= ' (IPv6 lookups require CAPI)' unless ($api eq 'CAPI');
 
 		foreach (@geo_dbs) {
 			my ($gi, $geo_db);
@@ -2215,6 +2237,8 @@ sub make_admin_post_panel {
 
     my $files = ($sth->fetchrow_array())[0];
 
+	# TODO: "SELECT num, timestamp FROM " . SQL_TABLE . " WHERE"
+
     make_http_header();
     print encode_string(
         POST_PANEL_TEMPLATE->(
@@ -2223,6 +2247,10 @@ sub make_admin_post_panel {
             threads  => $threads,
             files    => $files,
             size     => $size,
+            oldest   => 0,
+            o_date   => 1,
+            newest   => 0,
+            n_date   => 1,
             geoip_api      => $api,
             geoip_results  => \@results
         )
@@ -2479,7 +2507,7 @@ sub add_admin_entry {
 		if ($type eq 'ipban') {
 			if ($sval1 =~ /\d+/) {
 				$sval1 += $time;
-				$expires = make_date($sval1, 'phutaba');
+				$expires = make_date($sval1, DATE_STYLE, S_WEEKDAYS, S_MONTHS);
 			} else { $sval1 = ""; }
 		}
 
@@ -2497,6 +2525,7 @@ sub add_admin_entry {
 
 		$utf8_encoded_json_text = encode_json({
 			"error_code" => 200,
+			"info_msg" => S_BANADDED,
 			"banned_ip" => dec_to_dot($ival1),
 			"banned_mask" => dec_to_dot($ival2),
 			"expires" => $expires,
@@ -2515,7 +2544,7 @@ sub add_admin_entry {
 
 sub check_admin_entry {
     my ($admin, $ival1) = @_;
-    my ($sth, $utf8_encoded_json_text, $results);
+    my ($sth, $utf8_encoded_json_text, $results, $info_msg);
     if (!check_password_silent($admin, ADMIN_PASS)) {
 		$utf8_encoded_json_text = encode_json({"error_code" => 401, "error_msg" => 'Unauthorized'});
 	} else {
@@ -2527,8 +2556,11 @@ sub check_admin_entry {
 				. " WHERE type='ipban' AND ival1=? AND (CAST(sval1 AS UNSIGNED)>? OR sval1='');");
 			$sth->execute(dot_to_dec($ival1), time());
 			$results = ($sth->fetchrow_array())[0];
+			$info_msg = S_BANFOUND if ($results);
 
-			$utf8_encoded_json_text = encode_json({"error_code" => 200, "results" => $results});
+			$utf8_encoded_json_text = encode_json({
+				"error_code" => 200, "info_msg" => $info_msg, "results" => $results
+			});
 		}
 	}
     make_json_header();
@@ -2554,7 +2586,7 @@ sub delete_all {
 
     check_password( $admin, ADMIN_PASS );
 
-	unless($go and $ip) # do not allow empty IP (as it would delete anonymized (staff) posts)
+	unless ($go and $ip) # do not allow empty IP (would delete anonymized (staff) posts)
 	{
 		my ($pcount, $tcount);
 
@@ -2654,8 +2686,8 @@ sub make_error {
     print encode_string(
         ERROR_TEMPLATE->(
             error          => $error,
-            error_page     => 'Fehler aufgetreten',
-            error_title    => 'Fehler aufgetreten'
+            error_page     => S_ERRORTITLE,
+            error_title    => S_ERRORTITLE
         )
     );
 
@@ -2713,14 +2745,15 @@ sub get_secure_script_name {
 }
 
 sub expand_filename {
-    my ($filename) = @_;
+    my ($filename, $board) = @_;
 
     return $filename if ( $filename =~ m!^/! );
     return $filename if ( $filename =~ m!^\w+:! );
 
     my ($self_path) = $ENV{SCRIPT_NAME} =~ m!^(.*/)[^/]+$!;
+    $board = get_board_id() unless ($board);
     #return decode_string($self_path, CHARSET) . $filename;
-    return $self_path . get_board_id() . '/' . $filename;
+    return $self_path . $board . '/' . $filename;
 }
 
 sub expand_image_filename { # TODO: remove and replace by expand_filename since load balancing is not used anymore
@@ -2735,10 +2768,10 @@ sub expand_image_filename { # TODO: remove and replace by expand_filename since 
 }
 
 sub get_reply_link {
-    my ($reply, $parent) = @_;
+	my ($reply, $parent, $board) = @_;
 
-	return expand_filename( "thread/" . $parent ) . '#' . $reply if ($parent);
-   	return expand_filename( "thread/" . $reply );
+	return expand_filename("thread/" . $parent, $board) . '#' . $reply if ($parent);
+	return expand_filename("thread/" . $reply, $board);
 }
 
 sub get_page_count {
@@ -2868,7 +2901,7 @@ sub init_database {
 		"locked INTEGER," .     # Thread is locked (applied to parent post only)
 		"sticky INTEGER," .     # Thread is sticky (applied to all posts of a thread)
 		"location TEXT," .      # Geo::IP information for the IP address if available
-		"secure TEXT" .         # Cipher information if posted using SSL connection
+		"secure TEXT" .         # Cipher information if posted using encrypted connection
 
 		");"
     ) or make_error(S_SQLFAIL);
@@ -3143,30 +3176,18 @@ sub get_decoded_arrayref {
 
 sub debug_exec_time {
 	my ($label, $done) = @_;
-	return unless($has_timer);
+	return unless ($has_timer);
 
 	my $lap = Time::HiRes::gettimeofday();
-	$has_timer_output .= sprintf("%.1f ms (%s) ", ($lap - $has_timer) * 1000, $label);
+	$has_timer_output .= sprintf("%.0f ms (%s) ", ($lap - $has_timer) * 1000, $label);
 	$has_timer_output .= "+ " unless ($done);
 
 	if ($done) {
-		$has_timer_output .= sprintf("= %.1f ms (total)", ($lap - $has_timer_start) * 1000);
+		$has_timer_output .= sprintf("= %.0f ms (total)", ($lap - $has_timer_start) * 1000);
 		my $result = '<div class="omittedposts">' . $has_timer_output . "</div>\n";
 		return $result;
 	}
 	$has_timer = Time::HiRes::gettimeofday(); # lap reset timer
-}
-
-sub debug_line_count {
-	my ($comment) = @_;
-	my $abbreviation = abbreviate_html($comment, MAX_LINES_SHOWN, APPROX_LINE_LENGTH);
-	my $all_lines = count_lines($comment);
-	my $abbrev_lines = count_lines($abbreviation);
-	my $result = '';
-	$result = '<div class="omittedposts tldr" style="margin-left:0">Line Count: '
-		. "$all_lines - $abbrev_lines = "
-		. ($all_lines - $abbrev_lines) . "</div>" if ($all_lines);
-	return $result;
 }
 
 sub update_db_schema2 {  # mysql-specific. will be removed after migration is done.
@@ -3279,7 +3300,7 @@ sub update_files_meta {
 		$$row{image} =~ s!.*/!!;
 		$$row{image} = BOARD_IDENT . '/' . IMG_DIR . $$row{image};
 		if (-e $$row{image}) {
-			($info, $info_all) = get_meta_markup($$row{image}, CHARSET);
+			($info, $info_all) = get_meta_markup($$row{image}, CHARSET, TOOLTIP_TAGS);
 		} else {
 			undef($info);
 			$info_all = "File not found";

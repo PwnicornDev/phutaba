@@ -10,7 +10,7 @@ use DBI;
 use lib 'lib';
 BEGIN { require "site_config.pl"; }
 BEGIN { require "config_defaults.pl"; }
-BEGIN { require "strings_de.pl"; }
+BEGIN { require "strings_" . BOARD_LANG . ".pl"; }
 BEGIN { require "wakautils.pl"; }
 
 return 1 if (caller);
