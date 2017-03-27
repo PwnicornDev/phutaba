@@ -706,7 +706,7 @@ sub show_thread {
 		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
 	}
 
-	debug_exec_time('init') if ($isAdmin);
+	debug_exec_time('db/init') if ($isAdmin);
 
     $sth = $dbh->prepare(
             "SELECT * FROM "

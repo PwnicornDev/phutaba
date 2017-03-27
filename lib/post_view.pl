@@ -18,7 +18,7 @@ use constant POST_VIEW_INCLUDE => q{
 
 	<if ENABLE_HIDE_THREADS && !$thread && !$parent>
 		<span class="togglethread">
-		<img src="/img/icons/hide.png" title="<var sprintf S_HIDE, $num>" alt="Hide" onclick="hideThread('<var $num>', '<const BOARD_IDENT>');" />
+		<img src="/img/icons/hide.png" alt="Hide" onmouseover="Tip('<var sprintf S_HIDE, $num>')" onmouseout="UnTip()" onclick="hideThread('<var $num>', '<const BOARD_IDENT>');" />
 		</span>
 	</if>
 

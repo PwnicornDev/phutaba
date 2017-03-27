@@ -2045,8 +2045,8 @@ sub get_post_flag($) {
 	my @regions = (
 		['DE', 'Bayern',    'bavaria'  ],
 		['US', 'Texas',     'texas'    ],
-		['CA', 'Quebec',    'catalonia'],
-		['ES', 'Catalonia', 'quebec'   ],
+		['CA', 'Quebec',    'quebec'   ],
+		['ES', 'Catalonia', 'catalonia'],
 		['GB', 'Scotland',  'scotland' ]
 	);
 
@@ -2057,7 +2057,7 @@ sub get_post_flag($) {
 		}
 	}
 
-	my $flag = '<img src="/' . $flagfile . '" title="' . $countryname . '" alt="' . $countryname . '" />';
+	my $flag = '<img src="/' . $flagfile . '" onmouseover="Tip(\'' . $countryname . '\')" onmouseout="UnTip()" alt="' . $countryname . '" />';
 
 	return $flag;
 }
