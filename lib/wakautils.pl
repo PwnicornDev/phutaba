@@ -1528,7 +1528,7 @@ sub analyze_image {
     return ( "png", @res ) if ( @res = analyze_png($file) );
     return ( "gif", @res ) if ( @res = analyze_gif($file) );
 	return ( "pdf", @res ) if ( @res = analyze_pdf($file) );
-	return ( "svg", @res ) if ( @res = analyze_svg($file) );
+	#return ( "svg", @res ) if ( @res = analyze_svg($file) );
 	return ( "webm", @res ) if ( @res = analyze_webm($file) );
 	return ( "mp4", @res ) if ( @res = analyze_mp4($file) );
 
@@ -1650,7 +1650,7 @@ sub analyze_svg($) {
     if ($header =~ /<svg version=/i or $header =~ /<!DOCTYPE svg/i or
 		$header =~ m!<svg\s(?:.*\s)?xmlns="http://www\.w3\.org/2000/svg"\s!i or
 		$header =~ m!<svg\s(?:.*\n)*\s*xmlns="http://www\.w3\.org/2000/svg"\s!i) {
-        return (1, 1);
+        #return (1, 1);
     }
 
 	return ();
@@ -2030,12 +2030,35 @@ sub get_post_flag($) {
 	my @items = split(/<br \/>/, $data);
 	return '' unless (@items);
 
-	# country flag
 	$items[0] = 'UNKNOWN' if ($items[0] eq 'unk' or $items[0] eq 'A1' or $items[0] eq 'A2' or $items[0] eq 'v6');
+
+	# set up name and default flag
+	my $countryname = $items[0];             # two letter ISO code
+	$countryname = $items[1] if ($items[1]); # full name from geo location
 	my $flagfile = 'img/flags/' . $items[0] . '.PNG';
+
+	# use country ball if available
 	my $ballfile = 'img/balls/' . lc($items[0]) . '.PNG';
 	$flagfile = $ballfile if (-f $ballfile);
-	my $flag = '<img src="/' . $flagfile . '" title="' . $items[0] . '" alt="' . $items[0] . '" />';
+
+	# regional balls
+	my @regions = (
+		['DE', 'Bayern',    'bavaria'  ],
+		['US', 'Texas',     'texas'    ],
+		['CA', 'Quebec',    'catalonia'],
+		['ES', 'Catalonia', 'quebec'   ],
+		['GB', 'Scotland',  'scotland' ]
+	);
+
+	foreach my $region (@regions) {
+		if ($items[0] eq @$region[0] and $items[2] eq @$region[1]) {
+			my $regionball = 'img/balls/' . @$region[2] . '.PNG';
+			$flagfile = $regionball if (-f $regionball);
+		}
+	}
+
+	my $flag = '<img src="/' . $flagfile . '" title="' . $countryname . '" alt="' . $countryname . '" />';
+
 	return $flag;
 }
 

@@ -1,6 +1,10 @@
 /* fefe OPs */
-.text p {
+.thread_OP .text p, .thread_OP .text blockquote {
 	margin: 1em 0;
+}
+
+.thread_OP .text > div > p:first-child {
+	margin: 0 0 1em 0;
 }
 
 /* fefe updates diff */
