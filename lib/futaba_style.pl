@@ -217,6 +217,40 @@ use constant NORMAL_FOOT_INCLUDE => q{
 };
 
 
+use constant CATALOG_TEMPLATE => compile_template(
+    NORMAL_HEAD_INCLUDE . q{
+
+<loop $threads>
+
+		<loop $posts>
+<div class="catalog post">
+
+<if $subject><span class="subject"><var $subject></span><br /></if>
+
+<if $files><div class="file_container post_body" style="padding-right: 0.5em; padding-bottom: 0.5em;"></if>
+<loop $files>
+		<a target="_blank" href="<var get_reply_link($thread,0)>">
+		<img src="<var expand_filename($thumbnail)>" width="<var $tn_width>" height="<var $tn_height>" alt="" /></a>
+</loop>
+<if $files></div></if>
+
+<div class="text post_body">
+<a href="<var get_reply_link($num,0)>" style="display:block;"><var $comment></a>
+</div>
+<span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
+<a href="<var get_reply_link($num,0)>">
+<const S_REPLIES><var $replycount>
+<const S_FILES><var $filecount>
+</a>
+</span>
+</div>
+		</loop>
+
+</loop>
+
+} . NORMAL_FOOT_INCLUDE);
+
+
 use constant PAGE_TEMPLATE => compile_template(
     MANAGER_HEAD_INCLUDE . q{
 

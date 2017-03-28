@@ -210,6 +210,10 @@ elsif ( $task eq "show" ) {
         show_page($page, $admin);
 	}
 }
+elsif ($task eq "catalog") {
+	my $admin = $query->cookie("wakaadmin");
+	show_catalog($admin);
+}
 elsif ($task eq "search") {
 	my $find			= $query->param("find");
 	my $op_only			= $query->param("op");
@@ -495,6 +499,97 @@ sub show_post {
 			'<div id="' . $id . '"><div class="post_head post">' . S_NOREC . '</div></div>'
 		);
     }
+}
+
+sub show_catalog {
+    my ($admin) = @_;
+    my ($sth, $row, $sth2, @thread);
+
+	my $isAdmin = 0;
+	if (defined($admin)) {
+		#check_password($admin, ADMIN_PASS);
+		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
+	}
+
+	debug_exec_time('db/init') if ($isAdmin);
+
+    my $total_threads = count_threads();
+	$total_threads = MAX_SHOWN_THREADS if ($total_threads > MAX_SHOWN_THREADS and !$isAdmin);
+
+# todos:
+# make a <hr> between pages and show page number?
+# resolve/remove ref-links
+
+	if ($total_threads == 0) {            # no posts on the board
+		output_catalog($isAdmin, ());     # make an empty catalog
+    }
+    else {
+		my (@threads, @thread);
+
+		# grab all threads for the current page in sticky and bump order
+		$sth = $dbh->prepare(
+			    "SELECT * FROM "
+			  . SQL_TABLE
+			  . " WHERE parent=0 ORDER BY sticky DESC,lasthit DESC,num ASC"
+			  . " LIMIT ?" # why does 0,? not work?
+		) or make_error(S_SQLFAIL);
+		$sth->execute($total_threads) or make_error(S_SQLFAIL);
+
+		while ($row = get_decoded_hashref($sth)) {
+			@thread = ($row); # array will contain only the OP post
+
+			$sth2 = $dbh->prepare(
+				    "SELECT count(*) FROM "
+				  . SQL_TABLE
+				  . " WHERE parent=?"
+			) or make_error(S_SQLFAIL);
+			$sth2->execute($$row{num}) or make_error(S_SQLFAIL);
+			my $replies = ($sth2->fetchrow_array())[0];
+			$thread[0]{replycount} = $replies;
+
+			$sth2 = $dbh->prepare(
+				"SELECT count(*) FROM "
+				. SQL_TABLE_IMG
+				. " WHERE thread=? AND image IS NOT NULL AND size>0;"
+			) or make_error(S_SQLFAIL);
+			$sth2->execute($$row{num}) or make_error(S_SQLFAIL);
+			my $files = ($sth2->fetchrow_array())[0];
+			$thread[0]{filecount} = $files;
+
+			add_images_to_thread(@thread);
+
+			foreach my $file (@{$thread[0]{files}}) {
+				$$file{tn_width} = int($$file{tn_width} / 3);
+				$$file{tn_height} = int($$file{tn_height} / 3);
+			}
+
+			push @threads, { posts => [@thread] };
+		}
+
+		output_catalog($isAdmin, @threads);
+    }
+}
+
+sub output_catalog {
+	my ($isAdmin, @threads) = @_;
+	debug_exec_time('show_catalog') if ($isAdmin);
+
+	my $output =
+		encode_string(
+            CATALOG_TEMPLATE->(
+				threads      => \@threads
+            )
+		);
+
+	$output =~ s/^\s+\n//mg;
+
+	if ($isAdmin) {
+		my $exec_time = debug_exec_time('template', 1);
+		$output =~ s!(</body>\n</html>)$!${exec_time}$1!;
+	}
+
+	make_http_header();
+	print($output);
 }
 
 sub show_page {

@@ -148,6 +148,22 @@ ul.menu li a:active, ul.menu_bottom li a:active {
 }
 /* navigation menus END */
 
+/* catalog styles */
+.catalog {
+	width: 240px;
+	height: 260px;
+	margin: 0!important;
+	display: inline-block;
+	font-size: 0.9em;
+	position: relative;
+	overflow: hidden!important;
+}
+.catalog a, .catalog a:hover {
+	color: #000000;
+	text-decoration: none;
+}
+/* catalog styles END */
+
 .header {
 	text-align: center;
 }

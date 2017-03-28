@@ -40,17 +40,22 @@ use constant S_ABBR1 => '1 Post ';				# Prints text to be shown when replies are
 use constant S_ABBR2 => '%d Posts ';
 use constant S_ABBRIMG1 => 'und 1 Datei ';		# Prints text to be shown when replies and files are hidden
 use constant S_ABBRIMG2 => 'und %d Dateien ';
-use constant S_ABBR_END => 'ausgeblendet.'; 
+use constant S_ABBR_END => 'ausgeblendet';
 
 use constant S_ABBRTEXT1 => '1 weitere Zeile anzeigen';
 use constant S_ABBRTEXT2 => '%d weitere Zeilen anzeigen';
 
 use constant S_BANNED  => '(User wurde f&uuml;r diesen Post gesperrt)';
 
+## catalog strings
+use constant S_REPLIES => 'Antworten: ';
+use constant S_FILES => 'Dateien: ';
+
 ## bottom page navigation
 use constant S_PREV   => 'Zur&uuml;ck';    # Defines previous button
 use constant S_NEXT   => 'Vor';            # Defines next button
 use constant S_TOP    => 'Nach oben';
+use constant S_CATALOG => 'Katalog';
 use constant S_RETURN => 'Zur&uuml;ck'; # Returns from thread back to image board
 
 ## bottom page delete form
