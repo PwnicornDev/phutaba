@@ -2027,6 +2027,9 @@ sub get_pretty_html($$) {
 
 sub get_post_flag($) {
 	my ($data) = @_;
+
+	return make_flag_html('img/phutaba_icon.png', 'Team') if ($data eq 'ADMIN');
+
 	my @items = split(/<br \/>/, $data);
 	return '' unless (@items);
 
@@ -2057,9 +2060,12 @@ sub get_post_flag($) {
 		}
 	}
 
-	my $flag = '<img src="/' . $flagfile . '" onmouseover="Tip(\'' . $countryname . '\')" onmouseout="UnTip()" alt="' . $countryname . '" />';
+	return make_flag_html($flagfile, $countryname);
+}
 
-	return $flag;
+sub make_flag_html($$) {
+	my ($img, $name) = @_;
+	return '<img src="/' . $img . '" onmouseover="Tip(\'' . $name . '\')" onmouseout="UnTip()" title="' . $name . '" alt="' . $name . '" />';
 }
 
 sub get_post_info($$) {

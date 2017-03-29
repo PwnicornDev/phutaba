@@ -367,6 +367,9 @@ use constant PAGE_TEMPLATE => compile_template(
 			</li>
 		</ul>
 		<ul class="pagelist">
+			<li>[<a href="<var expand_filename('catalog')>"><const S_CATALOG></a>]</li>
+		</ul>
+		<ul class="pagelist">
 			<li>[<a href="#top"><const S_TOP></a>]</li>
 		</ul>
 	</nav>

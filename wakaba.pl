@@ -503,7 +503,7 @@ sub show_post {
 
 sub show_catalog {
     my ($admin) = @_;
-    my ($sth, $row, @thread, @replycount, @filecount);
+    my ($sth, $row, @replycount, @filecount);
 
 	my $isAdmin = 0;
 	if (defined($admin)) {
@@ -524,7 +524,7 @@ sub show_catalog {
 		output_catalog($isAdmin, ());     # make an empty catalog
     }
     else {
-		my (@threads, @thread);
+		my (@threads);
 
 		# grab all threads for the current page in sticky and bump order
 		$sth = $dbh->prepare(
@@ -536,20 +536,17 @@ sub show_catalog {
 		$sth->execute($total_threads) or make_error(S_SQLFAIL);
 
 		while ($row = get_decoded_hashref($sth)) {
-			@thread = ($row); # array will contain only the OP post
+			$$row{replycount} = 0;
+			$$row{filecount} = 0;
+			$$row{page} = int(scalar @threads / IMAGES_PER_PAGE) + 1;
+			add_images_to_row($row);
 
-			$thread[0]{replycount} = 0;
-			$thread[0]{filecount} = 0;
-			$thread[0]{page} = int(scalar @threads / IMAGES_PER_PAGE) + 1;
-
-			add_images_to_thread(@thread);
-
-			foreach my $file (@{$thread[0]{files}}) {
-				$$file{tn_width} = int($$file{tn_width} / 3);
-				$$file{tn_height} = int($$file{tn_height} / 3);
+			foreach my $file (@{$$row{files}}) {
+				$$file{tn_width} = int($$file{tn_width} / 2.5);
+				$$file{tn_height} = int($$file{tn_height} / 2.5);
 			}
 
-			push @threads, $thread[0];
+			push @threads, $row;
 		}
 
 		# get reply counts for threads
