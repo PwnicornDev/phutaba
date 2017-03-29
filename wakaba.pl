@@ -17,9 +17,9 @@ use IO::Select; # wait for DNSBL answer
 
 use constant HANDLER_ERROR_PAGE_HEAD => q{
 <!DOCTYPE html>
-<html lang="de"> 
+<html lang="en">
 <head>
-<title>Phutaba &raquo; Serverfehler</title>
+<title>Phutaba &raquo; Server Error</title>
 <meta charset="utf-8" />
 <link rel="shortcut icon" href="/img/favicon.ico" />
 <link rel="stylesheet" type="text/css" href="/static/css/phutaba.css" />
@@ -29,7 +29,7 @@ use constant HANDLER_ERROR_PAGE_HEAD => q{
 <header>
 	<div class="header">
 		<div class="banner"><a href="/"><img src="/banner.pl" alt="Banner" /></a></div>
-		<div class="boardname">Serverfehler</div>
+		<div class="boardname">Server Error</div>
 	</div>
 </header>
 	<hr />
@@ -112,10 +112,11 @@ BEGIN {
 }
 BEGIN {
 	require "strings_" . BOARD_LANG . ".pl";
-	require "wakautils.pl";
 	require "futaba_style.pl";
 	require "captcha.pl";
+	require "wakautils.pl";
 }
+debug_exec_time('begin/require');
 
 #
 # Optional modules
@@ -508,7 +509,7 @@ sub show_page {
 		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
 	}
 
-	debug_exec_time('init') if ($isAdmin);
+	debug_exec_time('db/init') if ($isAdmin);
 
     my $total_threads = count_threads();
     my $total_pages = get_page_count($total_threads, $isAdmin);
@@ -705,7 +706,7 @@ sub show_thread {
 		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
 	}
 
-	debug_exec_time('init') if ($isAdmin);
+	debug_exec_time('db/init') if ($isAdmin);
 
     $sth = $dbh->prepare(
             "SELECT * FROM "
@@ -2784,7 +2785,7 @@ sub get_page_count {
 
 sub get_filetypes_hash {
     my %filetypes = FILETYPES;
-    $filetypes{gif} = $filetypes{jpg} = $filetypes{jpeg} = $filetypes{png} = $filetypes{svg} = 'image';
+    $filetypes{gif} = $filetypes{jpg} = $filetypes{jpeg} = $filetypes{png} = 'image';
 	$filetypes{pdf} = 'doc';
 	$filetypes{webm} = $filetypes{mp4} = 'video';
 	return %filetypes;
