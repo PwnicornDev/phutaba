@@ -503,7 +503,7 @@ sub show_post {
 
 sub show_catalog {
     my ($admin) = @_;
-    my ($sth, $row, $sth2, @thread);
+    my ($sth, $row, @thread, @replycount, @filecount);
 
 	my $isAdmin = 0;
 	if (defined($admin)) {
@@ -514,10 +514,10 @@ sub show_catalog {
 	debug_exec_time('db/init') if ($isAdmin);
 
     my $total_threads = count_threads();
-	$total_threads = MAX_SHOWN_THREADS if ($total_threads > MAX_SHOWN_THREADS and !$isAdmin);
+	$total_threads = MAX_SHOWN_THREADS if ($total_threads > MAX_SHOWN_THREADS);
 
 # todos:
-# make a <hr> between pages and show page number?
+# make a <hr> between pages?
 # resolve/remove ref-links
 
 	if ($total_threads == 0) {            # no posts on the board
@@ -538,23 +538,9 @@ sub show_catalog {
 		while ($row = get_decoded_hashref($sth)) {
 			@thread = ($row); # array will contain only the OP post
 
-			$sth2 = $dbh->prepare(
-				    "SELECT count(*) FROM "
-				  . SQL_TABLE
-				  . " WHERE parent=?"
-			) or make_error(S_SQLFAIL);
-			$sth2->execute($$row{num}) or make_error(S_SQLFAIL);
-			my $replies = ($sth2->fetchrow_array())[0];
-			$thread[0]{replycount} = $replies;
-
-			$sth2 = $dbh->prepare(
-				"SELECT count(*) FROM "
-				. SQL_TABLE_IMG
-				. " WHERE thread=? AND image IS NOT NULL AND size>0;"
-			) or make_error(S_SQLFAIL);
-			$sth2->execute($$row{num}) or make_error(S_SQLFAIL);
-			my $files = ($sth2->fetchrow_array())[0];
-			$thread[0]{filecount} = $files;
+			$thread[0]{replycount} = 0;
+			$thread[0]{filecount} = 0;
+			$thread[0]{page} = int(scalar @threads / IMAGES_PER_PAGE) + 1;
 
 			add_images_to_thread(@thread);
 
@@ -563,7 +549,34 @@ sub show_catalog {
 				$$file{tn_height} = int($$file{tn_height} / 3);
 			}
 
-			push @threads, { posts => [@thread] };
+			push @threads, $thread[0];
+		}
+
+		# get reply counts for threads
+		$sth = $dbh->prepare(
+			"SELECT parent, count(*) FROM "
+			. SQL_TABLE
+			. " WHERE parent>0"
+			. " GROUP BY parent;"
+		) or make_error(S_SQLFAIL);
+		$sth->execute() or make_error(S_SQLFAIL);
+		@replycount = @{ $sth->fetchall_arrayref() };
+		my %replycount = map { $_->[0] => $_->[1] } @replycount;
+
+		# get file counts for threads
+		$sth = $dbh->prepare(
+			"SELECT thread, count(*) FROM "
+			. SQL_TABLE_IMG
+			. " WHERE image IS NOT NULL AND size>0"
+			. " GROUP BY thread;"
+		) or make_error(S_SQLFAIL);
+		$sth->execute() or make_error(S_SQLFAIL);
+		@filecount = @{ $sth->fetchall_arrayref() };
+		my %filecount = map { $_->[0] => $_->[1] } @filecount;
+
+		foreach my $thread (@threads) {
+			$$thread{replycount} = $replycount{$$thread{num}} if ($replycount{$$thread{num}});
+			$$thread{filecount} = $filecount{$$thread{num}} if ($filecount{$$thread{num}});
 		}
 
 		output_catalog($isAdmin, @threads);
@@ -577,7 +590,8 @@ sub output_catalog {
 	my $output =
 		encode_string(
             CATALOG_TEMPLATE->(
-				threads      => \@threads
+				threads      => \@threads,
+				thread       => 1
             )
 		);
 

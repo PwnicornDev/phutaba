@@ -50,6 +50,7 @@ use constant S_BANNED  => '(User wurde f&uuml;r diesen Post gesperrt)';
 ## catalog strings
 use constant S_REPLIES => 'Antworten: ';
 use constant S_FILES => 'Dateien: ';
+use constant S_PAGE => 'Seite: ';
 
 ## bottom page navigation
 use constant S_PREV   => 'Zur&uuml;ck';    # Defines previous button

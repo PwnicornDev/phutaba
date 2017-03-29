@@ -49,7 +49,8 @@ use constant S_BANNED  => '(User was banned for this post)';
 
 ## catalog strings
 use constant S_REPLIES => 'Replies: ';
-use constant S_FILES => 'Files: ';
+use constant S_FILES => 'files: ';
+use constant S_PAGE => 'page: ';
 
 ## bottom page navigation
 use constant S_PREV   => 'Previous';    # Defines previous button

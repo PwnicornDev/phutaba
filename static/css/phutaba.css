@@ -157,6 +157,7 @@ ul.menu li a:active, ul.menu_bottom li a:active {
 	font-size: 0.9em;
 	position: relative;
 	overflow: hidden!important;
+	text-align: left;
 }
 .catalog a, .catalog a:hover {
 	color: #000000;

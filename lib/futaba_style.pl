@@ -220,10 +220,11 @@ use constant NORMAL_FOOT_INCLUDE => q{
 use constant CATALOG_TEMPLATE => compile_template(
     NORMAL_HEAD_INCLUDE . q{
 
+<hr /><div style="text-align: center;">
 <loop $threads>
 
-		<loop $posts>
-<div class="catalog post">
+
+<div class="catalog post" style="text-align: left;">
 
 <if $subject><span class="subject"><var $subject></span><br /></if>
 
@@ -234,19 +235,17 @@ use constant CATALOG_TEMPLATE => compile_template(
 </loop>
 <if $files></div></if>
 
-<div class="text post_body">
-<a href="<var get_reply_link($num,0)>" style="display:block;"><var $comment></a>
-</div>
+<div class="text post_body"><var $comment></div>
 <span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
-<a href="<var get_reply_link($num,0)>">
-<const S_REPLIES><var $replycount>
-<const S_FILES><var $filecount>
+<a target="_blank" href="<var get_reply_link($num,0)>">
+<const S_REPLIES><var $replycount>, <const S_FILES><var $filecount>, <const S_PAGE><var $page>
 </a>
 </span>
 </div>
-		</loop>
+
 
 </loop>
+</div><hr />
 
 } . NORMAL_FOOT_INCLUDE);
 
