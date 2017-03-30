@@ -2028,7 +2028,7 @@ sub get_pretty_html($$) {
 sub get_post_flag($) {
 	my ($data) = @_;
 
-	return make_flag_html('img/phutaba_icon.png', 'Team') if ($data eq 'ADMIN');
+	return make_flag_html('img/balls/staff-ec.PNG', 'Ernstchan') if ($data eq 'ADMIN');
 
 	my @items = split(/<br \/>/, $data);
 	return '' unless (@items);
