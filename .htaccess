@@ -43,6 +43,9 @@ RewriteRule ^([^/]+)/page/(\d+)$   wakaba.pl?task=show&board=$1&page=$2 [L]
 RewriteRule ^([^/]+)/faden/(\d+)$  wakaba.pl?task=show&board=$1&thread=$2 [L]
 RewriteRule ^([^/]+)/thread/(\d+)$ wakaba.pl?task=show&board=$1&thread=$2 [L]
 
+# catalog
+RewriteRule ^([^/]+)/catalog$ wakaba.pl?task=catalog&board=$1 [L]
+
 # allow download of original filenames
 RewriteRule ^([^/]+)/src/([^/]+)/([^/]+)$ $1/src/$2 [L,NS,DPI]
 

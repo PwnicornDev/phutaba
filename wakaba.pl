@@ -210,6 +210,10 @@ elsif ( $task eq "show" ) {
         show_page($page, $admin);
 	}
 }
+elsif ($task eq "catalog") {
+	my $admin = $query->cookie("wakaadmin");
+	show_catalog($admin);
+}
 elsif ($task eq "search") {
 	my $find			= $query->param("find");
 	my $op_only			= $query->param("op");
@@ -495,6 +499,108 @@ sub show_post {
 			'<div id="' . $id . '"><div class="post_head post">' . S_NOREC . '</div></div>'
 		);
     }
+}
+
+sub show_catalog {
+    my ($admin) = @_;
+    my ($sth, $row, @replycount, @filecount);
+
+	my $isAdmin = 0;
+	if (defined($admin)) {
+		#check_password($admin, ADMIN_PASS);
+		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
+	}
+
+	debug_exec_time('db/init') if ($isAdmin);
+
+    my $total_threads = count_threads();
+	$total_threads = MAX_SHOWN_THREADS if ($total_threads > MAX_SHOWN_THREADS);
+
+# todos:
+# make a <hr> between pages?
+# resolve/remove ref-links
+
+	if ($total_threads == 0) {            # no posts on the board
+		output_catalog($isAdmin, ());     # make an empty catalog
+    }
+    else {
+		my (@threads);
+
+		# grab all threads for the current page in sticky and bump order
+		$sth = $dbh->prepare(
+			    "SELECT * FROM "
+			  . SQL_TABLE
+			  . " WHERE parent=0 ORDER BY sticky DESC,lasthit DESC,num ASC"
+			  . " LIMIT ?" # why does 0,? not work?
+		) or make_error(S_SQLFAIL);
+		$sth->execute($total_threads) or make_error(S_SQLFAIL);
+
+		while ($row = get_decoded_hashref($sth)) {
+			$$row{replycount} = 0;
+			$$row{filecount} = 0;
+			$$row{page} = int(scalar @threads / IMAGES_PER_PAGE) + 1;
+			add_images_to_row($row);
+
+			foreach my $file (@{$$row{files}}) {
+				$$file{tn_width} = int($$file{tn_width} / 2.5);
+				$$file{tn_height} = int($$file{tn_height} / 2.5);
+			}
+
+			push @threads, $row;
+		}
+
+		# get reply counts for threads
+		$sth = $dbh->prepare(
+			"SELECT parent, count(*) FROM "
+			. SQL_TABLE
+			. " WHERE parent>0"
+			. " GROUP BY parent;"
+		) or make_error(S_SQLFAIL);
+		$sth->execute() or make_error(S_SQLFAIL);
+		@replycount = @{ $sth->fetchall_arrayref() };
+		my %replycount = map { $_->[0] => $_->[1] } @replycount;
+
+		# get file counts for threads
+		$sth = $dbh->prepare(
+			"SELECT thread, count(*) FROM "
+			. SQL_TABLE_IMG
+			. " WHERE image IS NOT NULL AND size>0"
+			. " GROUP BY thread;"
+		) or make_error(S_SQLFAIL);
+		$sth->execute() or make_error(S_SQLFAIL);
+		@filecount = @{ $sth->fetchall_arrayref() };
+		my %filecount = map { $_->[0] => $_->[1] } @filecount;
+
+		foreach my $thread (@threads) {
+			$$thread{replycount} = $replycount{$$thread{num}} if ($replycount{$$thread{num}});
+			$$thread{filecount} = $filecount{$$thread{num}} if ($filecount{$$thread{num}});
+		}
+
+		output_catalog($isAdmin, @threads);
+    }
+}
+
+sub output_catalog {
+	my ($isAdmin, @threads) = @_;
+	debug_exec_time('show_catalog') if ($isAdmin);
+
+	my $output =
+		encode_string(
+            CATALOG_TEMPLATE->(
+				threads      => \@threads,
+				thread       => 1
+            )
+		);
+
+	$output =~ s/^\s+\n//mg;
+
+	if ($isAdmin) {
+		my $exec_time = debug_exec_time('template', 1);
+		$output =~ s!(</body>\n</html>)$!${exec_time}$1!;
+	}
+
+	make_http_header();
+	print($output);
 }
 
 sub show_page {

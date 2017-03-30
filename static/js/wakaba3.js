@@ -233,7 +233,9 @@ function set_inputs(id) {
 }
 
 function set_delpass(id) {
-	with (document.getElementById(id)) password.value = get_cookie("password");
+	var delform = document.getElementById(id);
+	if (delform != null)
+		with (delform) password.value = get_cookie("password");
 }
 
 /*

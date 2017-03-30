@@ -148,6 +148,22 @@ ul.menu li a:active, ul.menu_bottom li a:active {
 }
 /* navigation menus END */
 
+/* catalog styles */
+.catalog {
+	width: 240px;
+	height: 260px;
+	display: inline-block;
+	font-size: 0.9em;
+	overflow: hidden!important;
+	position: relative;  /* allow freely placed lables */
+	text-align: left;    /* revert center from container div */
+	vertical-align: top; /* safari inline-block fix */
+}
+.catalog a, .catalog a:hover {
+	text-decoration: none;
+}
+/* catalog styles END */
+
 .header {
 	text-align: center;
 }

@@ -8,7 +8,7 @@ use constant S_SAGEDESC    => 'Do not bump thread';
 use constant S_COMMENT     => 'Comment';      # Describes comment field
 use constant S_UPLOADFILE  => 'File';          # Describes file field
 use constant S_NOFILE      => 'No file';    # Describes file/no file checkbox
-use constant S_NOKO        => 'Back to';
+use constant S_NOKO        => 'Return to';
 use constant S_NOKOOFF     => 'Board';
 use constant S_NOKOON      => 'Thread';
 use constant S_CAPTCHA     => 'Captcha';        # Describes captcha field
@@ -40,17 +40,23 @@ use constant S_ABBR1 => '1 post ';				# Prints text to be shown when replies are
 use constant S_ABBR2 => '%d posts ';
 use constant S_ABBRIMG1 => 'and 1 file ';		# Prints text to be shown when replies and files are hidden
 use constant S_ABBRIMG2 => 'and %d files ';
-use constant S_ABBR_END => 'omitted.'; 
+use constant S_ABBR_END => 'omitted';
 
 use constant S_ABBRTEXT1 => 'Show 1 more line';
 use constant S_ABBRTEXT2 => 'Show %d more lines';
 
 use constant S_BANNED  => '(User was banned for this post)';
 
+## catalog strings
+use constant S_REPLIES => 'Replies: ';
+use constant S_FILES => 'Files: ';
+use constant S_PAGE => 'Page: ';
+
 ## bottom page navigation
 use constant S_PREV   => 'Previous';    # Defines previous button
 use constant S_NEXT   => 'Next';            # Defines next button
 use constant S_TOP    => 'Top';
+use constant S_CATALOG => 'Catalog';
 use constant S_RETURN => 'Return'; # Returns from thread back to image board
 
 ## bottom page delete form

@@ -217,6 +217,33 @@ use constant NORMAL_FOOT_INCLUDE => q{
 };
 
 
+use constant CATALOG_TEMPLATE => compile_template(
+    NORMAL_HEAD_INCLUDE . q{
+
+<hr /><div style="text-align: center;">
+<loop $threads>
+	<div class="catalog post" style="text-align: left; margin-right: 0.2em;">
+	<if $subject><div class="subject" style="padding: 0.5em 1.2em 0 1.2em;"><var $subject></div></if>
+
+	<if $files><div class="file_container post_body" style="padding-right: 0.5em; padding-bottom: 0.5em;"></if>
+	<loop $files>
+		<a target="_blank" href="<var get_reply_link($thread,0)>">
+		<img src="<var expand_filename($thumbnail)>" width="<var $tn_width>" height="<var $tn_height>" alt="" /></a>
+	</loop>
+	<if $files></div></if>
+
+	<div class="post_body" style="padding-right: 1.2em;"><var $comment></div>
+		<span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
+		<a target="_blank" href="<var get_reply_link($num,0)>" style="color: #702802;">
+		<const S_REPLIES><var $replycount>, <const S_FILES><var $filecount>, <const S_PAGE><var $page>
+		</a></span>
+	</div>
+</loop>
+</div><hr />
+
+} . NORMAL_FOOT_INCLUDE);
+
+
 use constant PAGE_TEMPLATE => compile_template(
     MANAGER_HEAD_INCLUDE . q{
 
@@ -332,6 +359,9 @@ use constant PAGE_TEMPLATE => compile_template(
 				<if $nextpage>[<a href="<var $nextpage>"><const S_NEXT></a>]</if>
 				<if !$nextpage>[<const S_NEXT>]</if>
 			</li>
+		</ul>
+		<ul class="pagelist">
+			<li>[<a href="<var expand_filename('catalog')>"><const S_CATALOG></a>]</li>
 		</ul>
 		<ul class="pagelist">
 			<li>[<a href="#top"><const S_TOP></a>]</li>
