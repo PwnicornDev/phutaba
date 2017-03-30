@@ -1497,7 +1497,7 @@ sub ban_check {
 					$$ban{network}  = ip_compress_address(ip_bintoip($banned_bits, 6), 6);
 					$$ban{setbits}  = $mask_len;
 					$$ban{showmask} = $$ban{setbits} < 128 ? 1 : 0;
-					$$ban{reason}   = $$row{comment};
+					$$ban{reason}   = resolve_reflinks($$row{comment});
 					$$ban{expires}  = $$row{sval1};
 					push @bans, $ban;
 				}
@@ -1521,7 +1521,7 @@ sub ban_check {
 			$$ban{network}  = dec_to_dot($numip & $$row{ival2});
 			$$ban{setbits}  = unpack("%32b*", pack('N', $$row{ival2}));
 			$$ban{showmask} = $$ban{setbits} < 32 ? 1 : 0;
-			$$ban{reason}   = $$row{comment};
+			$$ban{reason}   = resolve_reflinks($$row{comment});
 			$$ban{expires}  = $$row{sval1};
 			push @bans, $ban;
 		}
@@ -2391,9 +2391,12 @@ sub make_admin_ban_panel {
         $prevtype      = $$row{type};
         $$row{rowtype} = @bans % 2 + 1;
 		if ($$row{type} eq 'ipban' or $$row{type} eq 'whitelist') {
+			# add flag
 			my $flag = get_geolocation(dec_to_dot($$row{ival1}));
 			$flag = 'UNKNOWN' if ($flag eq 'unk' or $flag eq 'A1' or $flag eq 'A2');
 			$$row{flag} = $flag;
+			# reflink in 'ipban' comments
+			$$row{comment} = resolve_reflinks($$row{comment});
 		}
         push @bans, $row;
     }
@@ -2616,6 +2619,10 @@ sub add_admin_entry {
 				$sval1 += $time;
 				$expires = make_date($sval1, DATE_STYLE, S_WEEKDAYS, S_MONTHS);
 			} else { $sval1 = ""; }
+
+			if ($postid) {
+				$comment .= ' (<!--reflink-->&gt;&gt;/' . decode_string(BOARD_IDENT, CHARSET) . '/' . $postid . ')';
+			}
 		}
 
 		$sth = $dbh->prepare(
