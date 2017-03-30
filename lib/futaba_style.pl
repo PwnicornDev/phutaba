@@ -222,28 +222,22 @@ use constant CATALOG_TEMPLATE => compile_template(
 
 <hr /><div style="text-align: center;">
 <loop $threads>
+	<div class="catalog post" style="text-align: left; margin-right: 0.2em;">
+	<if $subject><div class="subject" style="padding: 0.5em 1.2em 0 1.2em;"><var $subject></div></if>
 
-
-<div class="catalog post" style="text-align: left;">
-
-<if $subject><span class="subject"><var $subject></span><br /></if>
-
-<if $files><div class="file_container post_body" style="padding-right: 0.5em; padding-bottom: 0.5em;"></if>
-<loop $files>
+	<if $files><div class="file_container post_body" style="padding-right: 0.5em; padding-bottom: 0.5em;"></if>
+	<loop $files>
 		<a target="_blank" href="<var get_reply_link($thread,0)>">
 		<img src="<var expand_filename($thumbnail)>" width="<var $tn_width>" height="<var $tn_height>" alt="" /></a>
-</loop>
-<if $files></div></if>
+	</loop>
+	<if $files></div></if>
 
-<div class="text post_body"><var $comment></div>
-<span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
-<a target="_blank" href="<var get_reply_link($num,0)>">
-<const S_REPLIES><var $replycount>, <const S_FILES><var $filecount>, <const S_PAGE><var $page>
-</a>
-</span>
-</div>
-
-
+	<div class="post_body" style="padding-right: 1.2em;"><var $comment></div>
+		<span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
+		<a target="_blank" href="<var get_reply_link($num,0)>" style="color: #702802;">
+		<const S_REPLIES><var $replycount>, <const S_FILES><var $filecount>, <const S_PAGE><var $page>
+		</a></span>
+	</div>
 </loop>
 </div><hr />
 

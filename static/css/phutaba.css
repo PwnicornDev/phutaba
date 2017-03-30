@@ -152,15 +152,14 @@ ul.menu li a:active, ul.menu_bottom li a:active {
 .catalog {
 	width: 240px;
 	height: 260px;
-	margin: 0!important;
 	display: inline-block;
 	font-size: 0.9em;
-	position: relative;
 	overflow: hidden!important;
-	text-align: left;
+	position: relative;  /* allow freely placed lables */
+	text-align: left;    /* revert center from container div */
+	vertical-align: top; /* safari inline-block fix */
 }
 .catalog a, .catalog a:hover {
-	color: #000000;
 	text-decoration: none;
 }
 /* catalog styles END */
