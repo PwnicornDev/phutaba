@@ -25,8 +25,7 @@ use constant POST_VIEW_INCLUDE => q{
 	<label>
 		<input type="checkbox" name="delete" value="<var $num>" />
 		<span class="subject"><var $subject></span>
-		<if SHOW_FLAGS && !$adminpost><var get_post_flag($location)></if>
-		<if SHOW_FLAGS && $adminpost><var get_post_flag('ADMIN')></if>
+		<if SHOW_FLAGS><var get_post_flag($location, $adminpost)></if>
         <span class="postername"><var $name><if $trip><span class="tripcode"><var $trip></span></if></span>
 		<if $adminpost><span class="teampost">## Team ##</span></if>
 		<span class="date desktop"><var make_date($timestamp, DATE_STYLE, S_WEEKDAYS, S_MONTHS)></span>

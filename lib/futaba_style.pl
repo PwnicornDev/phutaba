@@ -233,10 +233,11 @@ use constant CATALOG_TEMPLATE => compile_template(
 	<if $files></div></if>
 
 	<div class="post_body" style="padding-right: 1.2em;"><var $comment></div>
-		<span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
-		<a target="_blank" href="<var get_reply_link($num,0)>" style="color: #702802;">
+	<span class="notice" style="position: absolute; bottom: 0; left: 0; margin-left: 0.1em; padding: 0.3em; background-color: #D7CFC0;">
+	<a target="_blank" href="<var get_reply_link($num,0)>" style="color: #702802;">
+		<if SHOW_FLAGS><var get_post_flag($location, $adminpost)></if>
 		<const S_REPLIES><var $replycount>, <const S_FILES><var $filecount>, <const S_PAGE><var $page>
-		</a></span>
+	</a></span>
 	</div>
 </loop>
 </div><hr />
@@ -270,20 +271,20 @@ use constant PAGE_TEMPLATE => compile_template(
 			<tr><td class="postblock">HTML</td>
 			<td><label><input type="checkbox" name="no_format" value="1" /> <const S_NOTAGS2></label></td></tr>
 		</if>
-	<if !FORCED_ANON or $admin><tr><td class="postblock"><label for="name"><const S_NAME></label></td><td><input type="text" name="field1" id="name" maxlength="<const MAX_FIELD_LENGTH>" /></td></tr></if>
+	<if !FORCED_ANON or $admin><tr><td class="postblock"><label for="name"><const S_NAME></label></td><td><input type="text" name="field1" id="name" maxlength="<const MAX_FIELD_LENGTH>" tabindex="1" /></td></tr></if>
 
-	<tr><td class="postblock"><label for="subject"><const S_SUBJECT></label></td><td><input type="text" name="field3" id="subject" maxlength="<const MAX_FIELD_LENGTH>" />
-	<input type="submit" id="postform_submit" value="<if $thread><var sprintf S_BTREPLY, '/' . BOARD_IDENT . '/' . $thread></if><if !$thread><const S_BTNEWTHREAD></if>" /></td>
+	<tr><td class="postblock"><label for="subject"><const S_SUBJECT></label></td><td><input type="text" name="field3" id="subject" maxlength="<const MAX_FIELD_LENGTH>" tabindex="2" />
+	<input type="submit" id="postform_submit" value="<if $thread><var sprintf S_BTREPLY, '/' . BOARD_IDENT . '/' . $thread></if><if !$thread><const S_BTNEWTHREAD></if>" tabindex="5" /></td>
 	</tr>
 
 	<if $thread>
 	<tr><td class="postblock"><label for="sage"><const S_SAGE></label></td>
-	<td><label><input type="checkbox" name="field2" value="sage" id="sage" /> <const S_SAGEDESC></label></td>
+	<td><label><input type="checkbox" name="field2" value="sage" id="sage" tabindex="3" /> <const S_SAGEDESC></label></td>
 	</tr>
 	</if>
 
 	<tr><td class="postblock"><label for="field4"><const S_COMMENT></label></td>
-	<td id="textField"><textarea id="field4" name="field4" cols="48" rows="6"></textarea>
+	<td id="textField"><textarea id="field4" name="field4" cols="48" rows="6" tabindex="4"></textarea>
 	</td></tr>
 
 	<if $image_inp>
@@ -595,7 +596,8 @@ use constant POST_PANEL_TEMPLATE => compile_template(
 } . NORMAL_FOOT_INCLUDE
 );
 
-use constant DELETE_PANEL_TEMPLATE => compile_template(MANAGER_HEAD_INCLUDE.q{
+use constant DELETE_PANEL_TEMPLATE => compile_template(
+	MANAGER_HEAD_INCLUDE . q{
 
 <div class="dellist"><const S_MPDELETEIP></div>
 
@@ -615,15 +617,15 @@ use constant DELETE_PANEL_TEMPLATE => compile_template(MANAGER_HEAD_INCLUDE.q{
 </tbody></table></form>
 </div>
 
-}.NORMAL_FOOT_INCLUDE);
+} . NORMAL_FOOT_INCLUDE);
 
 use constant BAN_PANEL_TEMPLATE => compile_template(
     MANAGER_HEAD_INCLUDE . q{
 
 <div class="dellist"><const S_MANABANS></div>
 
-<div class="postarea">
-<table><tbody><tr><td valign="bottom">
+<div class="managearea">
+<div class="managechild">
 
 <form action="<var $self>" method="post">
 <input type="hidden" name="task" value="addip" />
@@ -637,7 +639,27 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <input type="submit" value="<const S_BANIP>" /></td></tr>
 </tbody></table></form>
 
-</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td valign="bottom">
+<form action="<var $self>" method="post">
+<input type="hidden" name="task" value="addstring" />
+<input type="hidden" name="type" value="asban" />
+<input type="hidden" name="board" value="<const BOARD_IDENT>" />
+<table><tbody>
+<tr><td class="postblock"><const S_BANASNUMLABEL></td><td><input type="text" name="string" size="24" /></td></tr>
+<tr><td class="postblock"><const S_BANCOMMENTLABEL></td><td><input type="text" name="comment" size="16" />
+<input type="submit" value="<const S_BANASNUM>" /></td></tr>
+</tbody></table></form>
+
+<form action="<var $self>" method="post">
+<input type="hidden" name="task" value="addstring" />
+<input type="hidden" name="type" value="wordban" />
+<input type="hidden" name="board" value="<const BOARD_IDENT>" />
+<table><tbody>
+<tr><td class="postblock"><const S_BANWORDLABEL></td><td><input type="text" name="string" size="24" /></td></tr>
+<tr><td class="postblock"><const S_BANCOMMENTLABEL></td><td><input type="text" name="comment" size="16" />
+<input type="submit" value="<const S_BANWORD>" /></td></tr>
+</tbody></table></form>
+
+</div><div class="managechild">
 
 <form action="<var $self>" method="post">
 <input type="hidden" name="task" value="addip" />
@@ -650,20 +672,6 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <input type="submit" value="<const S_BANWHITELIST>" /></td></tr>
 </tbody></table></form>
 
-</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td></tr><tr><td valign="bottom">
-
-<form action="<var $self>" method="post">
-<input type="hidden" name="task" value="addstring" />
-<input type="hidden" name="type" value="wordban" />
-<input type="hidden" name="board" value="<const BOARD_IDENT>" />
-<table><tbody>
-<tr><td class="postblock"><const S_BANWORDLABEL></td><td><input type="text" name="string" size="24" /></td></tr>
-<tr><td class="postblock"><const S_BANCOMMENTLABEL></td><td><input type="text" name="comment" size="16" />
-<input type="submit" value="<const S_BANWORD>" /></td></tr>
-</tbody></table></form>
-
-</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td valign="bottom">
-
 <form action="<var $self>" method="post">
 <input type="hidden" name="task" value="addstring" />
 <input type="hidden" name="type" value="trust" />
@@ -674,21 +682,17 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <input type="submit" value="<const S_BANTRUST>" /></td></tr>
 </tbody></table></form>
 
-</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td></tr><tr><td valign="bottom" colspan="3">
-
 <form action="<var $self>" method="post">
 <input type="hidden" name="task" value="addstring" />
-<input type="hidden" name="type" value="asban" />
+<input type="hidden" name="type" value="filter" />
 <input type="hidden" name="board" value="<const BOARD_IDENT>" />
 <table><tbody>
-<tr><td class="postblock"><const S_BANASNUMLABEL></td><td><input type="text" name="string" size="24" /></td></tr>
-<tr><td class="postblock"><const S_BANCOMMENTLABEL></td><td><input type="text" name="comment" size="16" />
-<input type="submit" value="<const S_BANASNUM>" /></td></tr>
+<tr><td class="postblock"><const S_BANWRDFLTLABEL></td><td><input type="text" name="string" size="24" /></td></tr>
+<tr><td class="postblock"><const S_BANWRDREPLABEL></td><td><input type="text" name="comment" size="16" />
+<input type="submit" value="<const S_BANWRDFLTADD>" /></td></tr>
 </tbody></table></form>
 
-</td><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-
-</td></tr></tbody></table>
+</div>
 </div><br />
 
 <if $filter ne 'off'>[<a href="<var $self>?board=<var get_board_id()>&amp;task=bans&amp;filter=off#tbl"><const S_BANSHOWALL></a>]</if>
@@ -720,6 +724,10 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 	</if>
 	<if $type eq 'asban'>
 		<td>ASNum</td>
+		<td colspan="2"><var $sval1></td>
+	</if>
+	<if $type eq 'filter'>
+		<td>Filter</td>
 		<td colspan="2"><var $sval1></td>
 	</if>
 
