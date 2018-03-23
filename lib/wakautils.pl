@@ -2025,10 +2025,14 @@ sub get_pretty_html($$) {
 	return $text;
 }
 
-sub get_post_flag($) {
-	my ($data) = @_;
+##sub get_post_flag($$) { # <- add this after next update of wakaba.pl
+sub get_post_flag {
+	my ($data, $staff) = @_;
 
-	return make_flag_html('img/phutaba_icon.png', 'Team') if ($data eq 'ADMIN');
+	# legacy, keep this line until next update of wakaba.pl
+	return make_flag_html('img/balls/staff-ec.PNG', 'Ernstchan') if ($data eq 'ADMIN');
+
+	return make_flag_html('img/balls/staff-ec.PNG', 'Ernstchan') if ($staff);
 
 	my @items = split(/<br \/>/, $data);
 	return '' unless (@items);

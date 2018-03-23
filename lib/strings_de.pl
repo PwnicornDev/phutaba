@@ -56,6 +56,7 @@ use constant S_PAGE => 'Seite: ';
 use constant S_PREV   => 'Zur&uuml;ck';    # Defines previous button
 use constant S_NEXT   => 'Vor';            # Defines next button
 use constant S_TOP    => 'Nach oben';
+use constant S_BOTTOM => 'Nach unten';
 use constant S_CATALOG => 'Katalog';
 use constant S_RETURN => 'Zur&uuml;ck'; # Returns from thread back to image board
 
@@ -190,6 +191,9 @@ use constant S_BANTRUSTTRIP    => 'Tripcode';
 use constant S_BANTRUST        => 'Kein Captcha'; # trip whitelist submit
 use constant S_BANASNUMLABEL   => 'AS-Nummer';
 use constant S_BANASNUM        => 'Netz sperren'; # ban asn submit
+use constant S_BANWRDFLTLABEL  => 'Suchfilter';
+use constant S_BANWRDREPLABEL  => 'Ersetzen durch';
+use constant S_BANWRDFLTADD    => 'Filter hinzuf&uuml;gen'; # word filter submit
 
 # bans table bottom
 use constant S_BANFILTER => 'Abgelaufene Sperren ausblenden';
@@ -198,6 +202,9 @@ use constant S_BANTABLE =>
   '<th>Typ</th><th colspan="2">Wert</th><th>Kommentar</th><th>Erstelldatum</th><th>Ablaufdatum</th><th>Aktion</th>'
   ;          # Explains names for Ban Panel
 use constant S_BANREMOVE       => 'Entfernen';
+
+# admin error messages
+use constant S_WRDFLTINVALID => 'Wortfilter zu kurz oder zu lang oder enthält ungültige Zeichen.';
 
 
 ## error messages
@@ -262,6 +269,8 @@ use constant S_RENZOKU3 =>
   'Fehler: Zu viele Posts abgesetzt.';    # Returns error for $sec/similar posts spam filter.
 use constant S_RENZOKU4 =>
   'Fehler: L&ouml;schwartezeit noch nicht abgelaufen.';    # Returns error for too early post deletion.
+use constant S_RENZOKU5 =>
+  'Fehler: Zu viele Threads erstellt. Vor dem Erstellen neuer Threads bitte warten.';    # Returns error for too many threads spam filter.
 
 use constant S_DUPE =>
   'Fehler: Die Datei wurde bereits <a href="%s">hier</a> hochgeladen.'

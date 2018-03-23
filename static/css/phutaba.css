@@ -478,6 +478,20 @@ input[type='password'] {
 	text-align: center;
 }
 
+.managearea {
+	text-align: center;
+}
+
+.managearea table {
+	margin: 1em;
+	border-spacing: 0.25em;
+}
+
+.managechild {
+	display: inline-block;
+	text-align: left;
+}
+
 .row1 {
 	background-color: #D7CFC0;
 }

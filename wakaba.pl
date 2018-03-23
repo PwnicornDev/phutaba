@@ -1261,7 +1261,7 @@ sub post_stuff {
 #    $original_comment =~ s/\n/ /gm;
 
     # flood protection - must happen after inputs have been cleaned up
-    flood_check( $numip, $time, $comment, $file ) unless $admin; # fefe hack
+    flood_check( $numip, $time, $comment, $file, $parent ) unless $admin; # fefe hack
 
     # Manager and deletion stuff - duuuuuh?
 
@@ -1443,6 +1443,24 @@ sub is_trusted {
     return 0;
 }
 
+sub apply_wordfilter {
+	my ($comment) = @_;
+	my ($sth, $row, @words);
+    $sth =
+      $dbh->prepare( "SELECT sval1,comment FROM "
+          . SQL_ADMIN_TABLE
+          . " WHERE type='filter';" )
+      or make_error(S_SQLFAIL);
+    $sth->execute() or make_error(S_SQLFAIL);
+
+	while ($row = get_decoded_hashref($sth)) {
+		@words = split('\|', $$row{comment});
+		$comment =~ s/$$row{sval1}/$words[rand @words]/ig;
+	}
+
+	return $comment;
+}
+
 sub ban_check {
     my ($numip, $name, $subject, $comment, $as_num) = @_;
     my ($sth, $row);
@@ -1497,7 +1515,7 @@ sub ban_check {
 					$$ban{network}  = ip_compress_address(ip_bintoip($banned_bits, 6), 6);
 					$$ban{setbits}  = $mask_len;
 					$$ban{showmask} = $$ban{setbits} < 128 ? 1 : 0;
-					$$ban{reason}   = $$row{comment};
+					$$ban{reason}   = resolve_reflinks($$row{comment});
 					$$ban{expires}  = $$row{sval1};
 					push @bans, $ban;
 				}
@@ -1521,7 +1539,7 @@ sub ban_check {
 			$$ban{network}  = dec_to_dot($numip & $$row{ival2});
 			$$ban{setbits}  = unpack("%32b*", pack('N', $$row{ival2}));
 			$$ban{showmask} = $$ban{setbits} < 32 ? 1 : 0;
-			$$ban{reason}   = $$row{comment};
+			$$ban{reason}   = resolve_reflinks($$row{comment});
 			$$ban{expires}  = $$row{sval1};
 			push @bans, $ban;
 		}
@@ -1556,7 +1574,7 @@ sub ban_check {
 }
 
 sub flood_check {
-    my ( $ip, $time, $comment, $file ) = @_;
+    my ( $ip, $time, $comment, $file, $parent ) = @_;
     my ( $sth, $maxtime );
 
     if ($file) {
@@ -1593,12 +1611,28 @@ sub flood_check {
         $sth->execute( $ip, $comment ) or make_error(S_SQLFAIL);
         make_error(S_RENZOKU3) if ( ( $sth->fetchrow_array() )[0] );
     }
+
+	if (!$parent) {
+
+		# check for too many threads in the last 30 minutes
+        $maxtime = $time - 1800;
+        $sth =
+          $dbh->prepare( "SELECT count(*) FROM "
+              . SQL_TABLE
+              . " WHERE parent=0 AND ip=? AND timestamp>$maxtime;" )
+          or make_error(S_SQLFAIL);
+        $sth->execute($ip) or make_error(S_SQLFAIL);
+        make_error(S_RENZOKU5) if ( ( $sth->fetchrow_array() )[0] >= RENZOKU5 );
+	}
 }
 
 
 
 sub format_comment {
     my ($comment) = @_;
+
+	# filter comment
+	$comment = apply_wordfilter($comment);
 
     # hide >>1 references from the quoting code
     $comment =~ s/&gt;&gt;([0-9\-]+)/&gtgt;$1/g;
@@ -2376,7 +2410,9 @@ sub make_admin_ban_panel {
     $sth =
       $dbh->prepare( "SELECT * FROM "
           . SQL_ADMIN_TABLE
-          . " WHERE type='ipban'" . $expired . " OR type='wordban' OR type='whitelist' OR type='trust' OR type='asban'"
+          . " WHERE type='ipban'" . $expired
+		  . " OR type='wordban' OR type='whitelist' OR type='trust'"
+		  . " OR type='asban' OR type='filter'"
 		  . " ORDER BY type ASC, date DESC, num DESC;"
       ) or make_error(S_SQLFAIL);
 
@@ -2391,9 +2427,12 @@ sub make_admin_ban_panel {
         $prevtype      = $$row{type};
         $$row{rowtype} = @bans % 2 + 1;
 		if ($$row{type} eq 'ipban' or $$row{type} eq 'whitelist') {
+			# add flag
 			my $flag = get_geolocation(dec_to_dot($$row{ival1}));
 			$flag = 'UNKNOWN' if ($flag eq 'unk' or $flag eq 'A1' or $flag eq 'A2');
 			$$row{flag} = $flag;
+			# reflink in 'ipban' comments
+			$$row{comment} = resolve_reflinks($$row{comment});
 		}
         push @bans, $row;
     }
@@ -2611,11 +2650,23 @@ sub add_admin_entry {
 	} else {
 		$comment = clean_string( decode_string( $comment, CHARSET ) );
 
+		# set expiration date and add post link to ban
 		if ($type eq 'ipban') {
 			if ($sval1 =~ /\d+/) {
 				$sval1 += $time;
 				$expires = make_date($sval1, DATE_STYLE, S_WEEKDAYS, S_MONTHS);
 			} else { $sval1 = ""; }
+
+			if ($postid) {
+				$comment .= ' (<!--reflink-->&gt;&gt;/' . decode_string(BOARD_IDENT, CHARSET) . '/' . $postid . ')';
+			}
+		}
+
+		# wordfilter string will be used in a regex and must be restricted to
+		# prevent injection of perl code and long running or invalid expressions
+		if ($type eq 'filter') {
+			my $allowed = '^[a-zA-Z0-9äöüÄÖÜß|]{4,50}$';
+			make_error(S_WRDFLTINVALID) if ($sval1 !~ /$allowed/ or encode_string($comment) !~ /$allowed/);
 		}
 
 		$sth = $dbh->prepare(

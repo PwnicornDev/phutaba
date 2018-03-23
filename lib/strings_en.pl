@@ -56,6 +56,7 @@ use constant S_PAGE => 'Page: ';
 use constant S_PREV   => 'Previous';    # Defines previous button
 use constant S_NEXT   => 'Next';            # Defines next button
 use constant S_TOP    => 'Top';
+use constant S_BOTTOM => 'Bottom';
 use constant S_CATALOG => 'Catalog';
 use constant S_RETURN => 'Return'; # Returns from thread back to image board
 
@@ -190,6 +191,9 @@ use constant S_BANTRUSTTRIP    => 'Tripcode';
 use constant S_BANTRUST        => 'No captcha'; # trip whitelist submit
 use constant S_BANASNUMLABEL   => 'AS number';
 use constant S_BANASNUM        => 'Ban network'; # ban asn submit
+use constant S_BANWRDFLTLABEL  => 'Search expression';
+use constant S_BANWRDREPLABEL  => 'Replace by';
+use constant S_BANWRDFLTADD    => 'Add wordfilter';  # word filter submit
 
 # bans table bottom
 use constant S_BANFILTER => 'Hide expired bans';
@@ -198,6 +202,9 @@ use constant S_BANTABLE =>
   '<th>Type</th><th colspan="2">Value</th><th>Comment</th><th>Created</th><th>Expires</th><th>Action</th>'
   ;          # Explains names for Ban Panel
 use constant S_BANREMOVE       => 'Remove';
+
+# admin error messages
+use constant S_WRDFLTINVALID => 'Wordfilter string too short or too long or contains invalid characters.';
 
 
 ## error messages
@@ -260,6 +267,8 @@ use constant S_RENZOKU3 =>
   'Error: Too many posts submitted.';    # Returns error for $sec/similar posts spam filter.
 use constant S_RENZOKU4 =>
   'Error: Deletion timeout not expired.';    # Returns error for too early post deletion.
+use constant S_RENZOKU5 =>
+  'Error: Too many threads submitted. Please wait before creating more threads.';    # Returns error for too many threads spam filter.
 
 use constant S_DUPE =>
   'Error: This file has already been uploaded <a href="%s">here</a>.'
