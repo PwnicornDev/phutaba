@@ -67,6 +67,7 @@ use constant POST_VIEW_INCLUDE => q{
 		</div>
 		<span onmouseover="TagToTip('postinfo_<var $num>', TITLE, '<const S_POSTINFO>', DELAY, 0, CLICKSTICKY, true)" onmouseout="UnTip()">[<var dec_to_dot($ip)>]</span>
 		</if>
+		<if $staffname>[<var $staffname>]</if>
 		<if !$parent>	
 			<if !$sticky>
 				<span onmouseover="Tip('<const S_MPSTICKY>')" onmouseout="UnTip()"><a href="<var $self>?task=sticky&amp;board=<var get_board_id()>&amp;thread=<var $num>"><img src="/img/icons/sticky.png" alt="" /></a></span>

@@ -1192,6 +1192,16 @@ sub make_date {
 			$ltime[2], $ltime[1], $ltime[0]
 		);
 	}
+	elsif ($style eq "date") {
+		my @ltime = localtime($time);
+
+		return sprintf("%d. %s %d (%s.)",
+			$ltime[3],
+			$fullmonths[$ltime[4]],
+			$ltime[5] + 1900,
+			$days[$ltime[6]]
+		);
+	}
     elsif ( $style eq "2ch" ) {
         my @ltime = localtime($time);
 
@@ -2010,12 +2020,10 @@ sub get_pretty_html($$) {
 	return $text;
 }
 
-##sub get_post_flag($$) { # <- add this after next update of wakaba.pl
-sub get_post_flag {
+sub get_post_flag($$) {
 	my ($data, $staff) = @_;
-
-	# legacy, keep this line until next update of wakaba.pl
-	return make_flag_html('img/balls/staff-ec.PNG', 'Ernstchan') if ($data eq 'ADMIN');
+	# $data: location strings from db (separated by <br />)
+	# $staff: 0 = regular post; >0 = staff member id
 
 	return make_flag_html('img/balls/staff-ec.PNG', 'Ernstchan') if ($staff);
 
@@ -2034,6 +2042,7 @@ sub get_post_flag {
 	$flagfile = $ballfile if (-f $ballfile);
 
 	# regional balls
+	# table: #1 country code to map to, #2 region name to map to, #3 file name to use
 	my @regions = (
 		['DE', 'Bayern',    'bavaria'  ],
 		['US', 'Texas',     'texas'    ],
@@ -2046,6 +2055,7 @@ sub get_post_flag {
 		if ($items[0] eq @$region[0] and $items[2] eq @$region[1]) {
 			my $regionball = 'img/balls/' . @$region[2] . '.PNG';
 			$flagfile = $regionball if (-f $regionball);
+			$countryname = @$region[1];
 		}
 	}
 

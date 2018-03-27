@@ -152,16 +152,20 @@ my $task  = ( $query->param("task") or $query->param("action"));# unless $query-
 #$task = ( $query->url_param("task") ) unless $task;
 my $json  = ( $query->param("json") or "" );
 
-# create an empty file in the board directory to let migration code run
-if (-f BOARD_IDENT . "/migrate_sql") {
 	# fill meta-data fields of all existing board files.
-	update_files_meta();
-	#update_db_schema();  # schema migration.
+	#update_files_meta();
 	#update_db_schema2(); # schema migration 2 - change location column
-}
+	update_db_schema3(); # change adminpost column type from tinyint to int - add three new columns to admin table
 
 # check for admin table
 init_admin_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL_ADMIN_TABLE));
+
+# check for staff table
+init_staff_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL_STAFF_TABLE));
+
+# check for staff log table
+init_staff_log_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL_STAFF_LOG_TABLE));
+
 
 if ($json eq "stats") {
 	my $date_format = ($query->param("date_format") or "%Y-%m");
@@ -270,7 +274,7 @@ elsif ($task eq "fefe") {
 		or make_error("Cannot open $picture: $!");
 	binmode($fh);
 
-	$ENV{REMOTE_ADDR} = "0.0.0.0";
+	$ENV{REMOTE_ADDR} = "0.0.0.0"; ##
 
     my $parent     = "";
     my $spam1      = "";
@@ -282,7 +286,7 @@ elsif ($task eq "fefe") {
     my $gb2        = "thread";
     my $captcha    = "";
     my $password   = "";
-    my $admin      = crypt_password(ADMIN_PASS);
+    my $admin      = "xxx"; ## TODO: needs valid session now
     my $nofile     = "";
     my $no_format  = "1";
     my $postfix    = "";
@@ -343,15 +347,17 @@ elsif ( $task eq "save" ) {
     save_admin_edit($admin, $postid, $name, $subject, $comment);
 }
 elsif ( $task eq "admin" ) {
+	my $user        = $query->param("user");
     my $password    = $query->param("berra");        # lol obfuscation
     my $nexttask    = $query->param("nexttask");
     my $savelogin   = $query->param("savelogin");
     my $admincookie = $query->cookie("wakaadmin");
 
-    do_login( $password, $nexttask, $savelogin, $admincookie );
+    do_login($user, $password, $nexttask, $savelogin, $admincookie);
 }
 elsif ( $task eq "logout" ) {
-    do_logout();
+	my $admin = $query->cookie("wakaadmin");
+    do_logout($admin);
 }
 elsif ( $task eq "mpanel" ) {
     my $admin = $query->cookie("wakaadmin");
@@ -374,20 +380,22 @@ elsif ( $task eq "addip" ) {
     my $type    = $query->param("type");
     my $string  = $query->param("string");
     my $comment = $query->param("comment");
+    my $icomment = $query->param("icomment");
     my $ip      = $query->param("ip");
     my $mask    = $query->param("mask");
     my $postid  = $query->param("post");
 	my $ajax    = $query->param("ajax");
 	my $flag    = $query->param("flag");
+	my $global  = $query->param("global");
     add_admin_entry( $admin, $type, $comment, parse_range( $ip, $mask ),
-        $string, $postid, $ajax, $flag );
+        $string, $postid, $ajax, $flag, $icomment, $global );
 }
 elsif ( $task eq "addstring" ) {
     my $admin   = $query->cookie("wakaadmin");
     my $type    = $query->param("type");
     my $string  = $query->param("string");
     my $comment = $query->param("comment");
-    add_admin_entry( $admin, $type, $comment, 0, 0, $string, 0, 0, 0 );
+    add_admin_entry( $admin, $type, $comment, 0, 0, $string, 0, 0, 0, "", 0 );
 }
 elsif ( $task eq "checkban" ) {
     my $ival1	= $query->param("ip");
@@ -407,6 +415,46 @@ elsif ( $task eq "movefiles" ) {
     my $admin = $query->cookie("wakaadmin");
 	my @files = $query->multi_param("file");
 	move_files($admin, @files);
+}
+elsif ( $task eq "log" ) {
+    my $admin = $query->cookie("wakaadmin");
+	my $filter = $query->param("filter");
+	my $show = $query->param("show");
+    make_admin_log($admin, $filter, $show);
+}
+elsif ($task eq "staff") {
+	my $admin = $query->cookie("wakaadmin");
+	make_admin_users($admin);
+}
+elsif ($task eq "adduser") {
+	my $admin = $query->cookie("wakaadmin");
+	my $user = $query->param("user");
+	my $password = $query->param("password");
+	my $type = $query->param("type");
+	add_user($admin, $user, $password, $type);
+}
+elsif ($task eq "removeuser") {
+	my $admin = $query->cookie("wakaadmin");
+	my $num = $query->param("num");
+	remove_user($admin, $num);
+}
+elsif ($task eq "enableuser") {
+	my $admin = $query->cookie("wakaadmin");
+	my $num = $query->param("num");
+	change_user($admin, $num, 1);
+}
+elsif ($task eq "disableuser") {
+	my $admin = $query->cookie("wakaadmin");
+	my $num = $query->param("num");
+	change_user($admin, $num, 0);
+}
+elsif ($task eq "changepass") {
+	my $admin = $query->cookie("wakaadmin");
+	my $num = $query->param("num");
+	my $oldpw = $query->param("oldpw");
+	my $newpw1 = $query->param("newpw1");
+	my $newpw2 = $query->param("newpw2");
+	change_user_password($admin, $num, $oldpw, $newpw1, $newpw2);
 }
 else {
 	make_error("Unknown task parameter.") unless ($json);
@@ -606,14 +654,9 @@ sub output_catalog {
 sub show_page {
     my ($pageToShow, $admin) = @_;
     my ($sth, $row, $sth2, $row2, @thread);
-	# if we try to call show_page with admin parameter
-	# the admin password will be checked and this
-	# variable will be 1
-	my $isAdmin = 0;
-	if (defined($admin)) {
-		#check_password($admin, ADMIN_PASS);
-		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
-	}
+
+	# $isAdmin ($stafftype): 0 = normal user; 1 or 2 = staff
+	my ($isAdmin, $staffid) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -661,7 +704,9 @@ sub show_page {
 
 sub output_page {
     my ( $page, $total, $isAdmin, @threads) = @_;
-    my ( $filename, $tmpname );
+    my ( $filename, $tmpname, $users );
+
+	$users = get_staff_hashref() if ($isAdmin);
 
     # do abbrevations and such
     foreach my $thread (@threads) {
@@ -715,6 +760,7 @@ sub output_page {
         foreach my $post ( @{ $$thread{posts} } ) {
 			# create ref-links
 			$$post{comment} = resolve_reflinks($$post{comment});
+			$$post{staffname} = $$users{$$post{adminpost}} if ($isAdmin);
 
             my $abbreviation =
               abbreviate_html( $$post{comment}, MAX_LINES_SHOWN,
@@ -800,7 +846,7 @@ sub get_abbrev_message($) {
 
 sub show_thread {
     my ($thread, $admin) = @_;
-    my ( $sth, $row, @thread );
+    my ( $sth, $row, @thread, $users );
 #    my ( $filename, $tmpname );
 	
 	# if we try to call show_thread with admin parameter
@@ -814,6 +860,8 @@ sub show_thread {
 
 	debug_exec_time('db/init') if ($isAdmin);
 
+	$users = get_staff_hashref() if ($isAdmin);
+
     $sth = $dbh->prepare(
             "SELECT * FROM "
           . SQL_TABLE
@@ -823,6 +871,7 @@ sub show_thread {
 
     while ( $row = get_decoded_hashref($sth) ) {
 		$$row{comment} = resolve_reflinks($$row{comment});
+		$$row{staffname} = $$users{$$row{adminpost}} if ($isAdmin);
         push( @thread, $row );
     }
     make_error(S_NOTHREADERR, 1) if ( !$thread[0] or $thread[0]{parent} );
@@ -1109,12 +1158,14 @@ sub post_stuff {
     make_error(S_UNJUST)
       if ( $ENV{REQUEST_METHOD} and $ENV{REQUEST_METHOD} ne "POST" );
 
-	# clean up invalid admin cookie/session or posting would fail
-	$admin = "" unless ($admin eq crypt_password(ADMIN_PASS));
+    my ($stafftype, $staffid) = check_session($admin, 1);
 
-    if ($admin)  # check admin password
+	# clean up invalid admin cookie/session or posting would fail
+	$admin = "" unless ($stafftype);
+
+    if ($admin)  # check admin session
     {
-        check_password( $admin, ADMIN_PASS );
+        check_session($admin);
     }
     else {
 
@@ -1286,7 +1337,8 @@ sub post_stuff {
 	}
 
     $numip = "0" if (ANONYMIZE_IP_ADDRESSES);
-	if ($as_staff) { $as_staff = 1; }
+
+	if ($as_staff) { $as_staff = $staffid; }
 	else           { $as_staff = 0; };
 
     # finally, write to the database
@@ -1383,6 +1435,9 @@ sub post_stuff {
 
     # remove old threads from the database
     trim_database();
+
+	# log entry on staff post
+	add_log_entry("StaffPost", $staffid, $new_post_id) if ($as_staff);
 
     # set the name, email and password cookies
     make_cookies(
@@ -1482,6 +1537,8 @@ sub ban_check {
 	# check if the IP (ival1) belongs to a banned IP range (ival2)
 	# also checks expired (sval2) and fetches the ban reason(s) (comment)
 	my @bans = ();
+	# current board or all boards (TODO: support list of boards)
+	my $board = decode_string(BOARD_IDENT, CHARSET);
 
 	if ($ip =~ /:/) { # IPv6
 		my $client_ip = new Net::IP($ip) or make_error(Net::IP::Error());
@@ -1492,10 +1549,11 @@ sub ban_check {
 			  . SQL_ADMIN_TABLE
 			  . " WHERE type='ipban'"
 			  . " AND LENGTH(ival1)>10"
+			  . " AND (boards IS NULL OR boards=?)"
 			  . " AND (CAST(sval1 AS UNSIGNED)>? OR sval1='')"
 			  . " ORDER BY num;" )
 		  or make_error(S_SQLFAIL);
-		$sth->execute(time()) or make_error(S_SQLFAIL);
+		$sth->execute($board, time()) or make_error(S_SQLFAIL);
 
 		while ($row = get_decoded_hashref($sth)) {
 			# ignore IPv4 addresses
@@ -1527,11 +1585,12 @@ sub ban_check {
 			  . SQL_ADMIN_TABLE
 			  . " WHERE type='ipban'"
 			  . " AND LENGTH(ival1)<=10"
+			  . " AND (boards IS NULL OR boards=?)"
 			  . " AND ? & ival2 = ival1 & ival2"
 			  . " AND (CAST(sval1 AS UNSIGNED)>? OR sval1='')"
 			  . " ORDER BY num;" )
 		  or make_error(S_SQLFAIL);
-		$sth->execute($numip, time()) or make_error(S_SQLFAIL);
+		$sth->execute($board, $numip, time()) or make_error(S_SQLFAIL);
 
 		while ($row = get_decoded_hashref($sth)) {
 			my ($ban);
@@ -2114,8 +2173,10 @@ sub delete_stuff {
     my $deletebyip = 0;
 	my $noko = 1; # try to stay in thread after deletion by default	
 
+	my ($stafftype, $staffid) = check_session($admin, 1);
+
 	# clean up invalid admin cookie/session or deletion would always fail
-	$admin = "" unless ($admin eq crypt_password(ADMIN_PASS));
+	$admin = "" unless ($stafftype);
 
     check_password( $admin, ADMIN_PASS ) if ($admin);
 
@@ -2130,7 +2191,7 @@ sub delete_stuff {
         or $admin );
 
     foreach $post (@posts) {
-        delete_post( $post, $password, $fileonly, $deletebyip, $admin );
+        delete_post( $post, $password, $fileonly, $deletebyip, $admin, $staffid );
 		$noko = 0 if ( $parent and $post eq $parent ); # the thread is deleted and cannot be redirected to		
     }
 
@@ -2144,7 +2205,7 @@ sub delete_stuff {
 sub make_kontra {
     my ( $admin, $threadid ) = @_;
 
-    check_password( $admin, ADMIN_PASS );
+    my ($stafftype, $staffid) = check_session($admin);
 
     my ( $sth, $row );
     $sth = $dbh->prepare( "SELECT * FROM " . SQL_TABLE . " WHERE num=?;" )
@@ -2158,15 +2219,18 @@ sub make_kontra {
             "UPDATE " . SQL_TABLE . " SET autosage=? WHERE num=?;" )
           or make_error(S_SQLFAIL);
         $sth2->execute( $kontra, $threadid ) or make_error(S_SQLFAIL);
-    }
-    make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
 
+		add_log_entry("ThreadBumplock", $staffid, $threadid) if ($kontra == 1);
+		add_log_entry("ThreadNoBumplock", $staffid, $threadid) if ($kontra == 0);
+    }
+
+    make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
 }
 
 sub make_locked {
     my ( $admin, $threadid ) = @_;
 
-    check_password( $admin, ADMIN_PASS );
+    my ($stafftype, $staffid) = check_session($admin);
 
     my ( $sth, $row );
     $sth = $dbh->prepare( "SELECT * FROM " . SQL_TABLE . " WHERE num=?;" )
@@ -2180,14 +2244,18 @@ sub make_locked {
             "UPDATE " . SQL_TABLE . " SET locked=? WHERE num=?;" )
           or make_error(S_SQLFAIL);
         $sth2->execute( $locked, $threadid ) or make_error(S_SQLFAIL);
+
+		add_log_entry("ThreadLock", $staffid, $threadid) if ($locked == 1);
+		add_log_entry("ThreadUnlock", $staffid, $threadid) if ($locked == 0);
     }
+
     make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
 }
 
 sub make_sticky {
     my ( $admin, $threadid ) = @_;
 
-    check_password( $admin, ADMIN_PASS );
+    my ($stafftype, $staffid) = check_session($admin);
 
     my ( $sth, $row );
     $sth = $dbh->prepare( "SELECT * FROM " . SQL_TABLE . " WHERE num=?;" )
@@ -2201,13 +2269,16 @@ sub make_sticky {
             "UPDATE " . SQL_TABLE . " SET sticky=? WHERE num=? OR parent=?;" )
           or make_error(S_SQLFAIL);
         $sth2->execute( $sticky, $threadid, $threadid) or make_error(S_SQLFAIL);
+
+		add_log_entry("ThreadSticky", $staffid, $threadid) if ($sticky == 1);
+		add_log_entry("ThreadUnsticky", $staffid, $threadid) if ($sticky == undef);
     }
 
     make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
 }
 
 sub delete_post {
-    my ( $post, $password, $fileonly, $deletebyip, $admin ) = @_;
+    my ( $post, $password, $fileonly, $deletebyip, $admin, $staffid ) = @_;
     my ( $sth, $row, $res, $reply );
 
 	check_password($admin, ADMIN_PASS) if ($admin);
@@ -2226,6 +2297,14 @@ sub delete_post {
           if ( $deletebyip and ( $numip and $$row{ip} ne $numip ) );
 		make_error(S_RENZOKU4)
 		  if ( $$row{timestamp} + RENZOKU4 >= time() and !$admin );
+
+		if ($admin) {
+			if ($fileonly) {
+				add_log_entry("DeleteFiles", $staffid, $post);
+			} else {
+				add_log_entry("DeletePost", $staffid, $post, $$row{comment}, $$row{ip});
+			}
+		}
 
         unless ($fileonly) {
 
@@ -2330,6 +2409,19 @@ sub delete_post {
     }
 }
 
+sub add_log_entry {
+	my ($event, $staff, $post, $comment, $ip) = @_;
+
+	my $board = decode_string(BOARD_IDENT, CHARSET);
+
+	$sth = $dbh->prepare( "INSERT INTO "
+		. SQL_STAFF_LOG_TABLE
+		. " VALUES(?,?,?,?,?,?,?);" )
+		or make_error(S_SQLFAIL);
+	$sth->execute(time(), $event, $board, $post, $staff, $ip, $comment)
+		or make_error(S_SQLFAIL);
+}
+
 #
 # Admin interface
 #
@@ -2342,7 +2434,7 @@ sub make_admin_login {
 sub make_admin_post_panel {
     my ($admin) = @_;
 
-    check_password( $admin, ADMIN_PASS );
+	make_error(S_NOPRIV) unless (check_session($admin, 0, 1))[0] == 1;
 
 	# geoip
 	my $api = 'n/a';
@@ -2367,7 +2459,7 @@ sub make_admin_post_panel {
 	}
 
 	# statistics
-	my $sth;
+	my ($sth, $row);
 	my $threads = count_threads();
 	my ($posts, $size) = count_posts();
 
@@ -2378,7 +2470,24 @@ sub make_admin_post_panel {
 
     my $files = ($sth->fetchrow_array())[0];
 
-	# TODO: "SELECT num, timestamp FROM " . SQL_TABLE . " WHERE"
+	# "SELECT MIN(num), MIN(timestamp), MAX(num), MAX(timestamp) FROM " . SQL_TABLE
+	$sth = $dbh->prepare(
+		"SELECT num, timestamp FROM " . SQL_TABLE . " ORDER BY num ASC LIMIT 1;"
+	) or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+
+	$row = $sth->fetchrow_arrayref();
+	my $oldest = $$row[0];
+	my $o_date = $$row[1];
+
+	$sth = $dbh->prepare(
+		"SELECT num, timestamp FROM " . SQL_TABLE . " ORDER BY num DESC LIMIT 1;"
+	) or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+
+	$row = $sth->fetchrow_arrayref();
+	my $newest = $$row[0];
+	my $n_date = $$row[1];
 
     make_http_header();
     print encode_string(
@@ -2388,35 +2497,50 @@ sub make_admin_post_panel {
             threads  => $threads,
             files    => $files,
             size     => $size,
-            oldest   => 0,
-            o_date   => 1,
-            newest   => 0,
-            n_date   => 1,
+            oldest   => $oldest,
+            o_date   => $o_date,
+            newest   => $newest,
+            n_date   => $n_date,
             geoip_api      => $api,
             geoip_results  => \@results
         )
     );
+}
+sub get_staff_hashref {
+    my ($sth, $row, %users);
+
+	$sth = $dbh->prepare("SELECT num,user FROM " . SQL_STAFF_TABLE)
+		or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+
+	while ($row = get_decoded_hashref($sth)) {
+		$users{$$row{num}} = $$row{user};
+	}
+
+	return \%users;
 }
 
 sub make_admin_ban_panel {
     my ($admin, $filter) = @_;
     my ( $sth, $row, @bans, $prevtype );
 
-    check_password( $admin, ADMIN_PASS );
+    my ($stafftype, $staffid) = check_session($admin);
 
-	my $expired = "";
-	$expired = " AND (sval1='' OR CAST(sval1 AS UNSIGNED)>?)" if ($filter ne "off");
+	my $users = get_staff_hashref();
+
+	my $active = "";
+	$active = " AND (sval1='' OR CAST(sval1 AS UNSIGNED)>?)" if ($filter ne "off");
 
     $sth =
       $dbh->prepare( "SELECT * FROM "
           . SQL_ADMIN_TABLE
-          . " WHERE type='ipban'" . $expired
+          . " WHERE type='ipban'" . $active
 		  . " OR type='wordban' OR type='whitelist' OR type='trust'"
 		  . " OR type='asban' OR type='filter'"
 		  . " ORDER BY type ASC, date DESC, num DESC;"
       ) or make_error(S_SQLFAIL);
 
-	if ($expired) {
+	if ($active) {
 		$sth->execute(time()) or make_error(S_SQLFAIL);
 	} else {
 		$sth->execute() or make_error(S_SQLFAIL);
@@ -2431,22 +2555,25 @@ sub make_admin_ban_panel {
 			my $flag = get_geolocation(dec_to_dot($$row{ival1}));
 			$flag = 'UNKNOWN' if ($flag eq 'unk' or $flag eq 'A1' or $flag eq 'A2');
 			$$row{flag} = $flag;
+		}
+		if ($$row{type} eq 'ipban') {
 			# reflink in 'ipban' comments
 			$$row{comment} = resolve_reflinks($$row{comment});
 		}
+		$$row{user} = $$users{$$row{staff}};
         push @bans, $row;
     }
 
     make_http_header();
     print encode_string(
-        BAN_PANEL_TEMPLATE->( admin => 1, filter => $filter, bans => \@bans ) );
+        BAN_PANEL_TEMPLATE->( admin => $stafftype, filter => $filter, bans => \@bans ) );
 }
 
 sub make_admin_orphans {
     my ($admin) = @_;
 	my ($sth, $row, @results, @dbfiles, @dbthumbs);
 
-    check_password($admin, ADMIN_PASS);
+	make_error(S_NOPRIV) unless (check_session($admin, 0, 1))[0] == 1;
 
 	# gather all files/thumbs on disk
 	my @files = glob BOARD_IDENT . '/' . IMG_DIR . '*';
@@ -2523,7 +2650,7 @@ sub move_files($$){
 	my ($admin, @files) = @_;
 	my ($source, $target);
 
-	check_password($admin, ADMIN_PASS);
+	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
 
     foreach my $file (@files) {
 		$file = clean_string($file);
@@ -2542,7 +2669,8 @@ sub make_admin_edit_panel {
 	my ($admin, $postid) = @_;
 	my $row;
 
-	check_password($admin, ADMIN_PASS);
+	my ($stafftype, $staffid) = check_session($admin);
+
 	make_error(S_UNUSUAL) if ($postid =~ /[^0-9]/);
 
 	$sth = $dbh->prepare("SELECT name, subject, comment FROM " . SQL_TABLE . " WHERE num=?;")
@@ -2562,7 +2690,7 @@ sub make_admin_edit_panel {
 
 		make_http_header();
 		print encode_string(ADMIN_EDIT_TEMPLATE->(
-			admin   => 1,
+			admin   => $stafftype,
 			postid  => $postid,
 			name    => $$row{name},
 			subject => $$row{subject},
@@ -2573,9 +2701,9 @@ sub make_admin_edit_panel {
 
 sub save_admin_edit {
 	my ($admin, $postid, $name, $subject, $comment) = @_;
-	my ($sth);
+	my ($sth, $row);
 
-	check_password($admin, ADMIN_PASS);
+	my ($stafftype, $staffid) = check_session($admin);
 
 	# remove any newlines
 	$name =~ s/\r\n|\n|\r//g;
@@ -2588,59 +2716,159 @@ sub save_admin_edit {
 	$subject = clean_string(decode_string($subject, CHARSET));
 	$comment = decode_string($comment, CHARSET);
 
+	# fetch old comment for logging
+	$sth = $dbh->prepare("SELECT comment FROM " . SQL_TABLE . " WHERE num=?;")
+	  or make_error(S_SQLFAIL);
+	$sth->execute($postid) or make_error(S_SQLFAIL);
+	$row = get_decoded_hashref($sth);
+
 	$sth = $dbh->prepare("UPDATE " . SQL_TABLE . " SET name=?, subject=?, comment=? WHERE num=? LIMIT 1;" )
 	  or make_error(S_SQLFAIL);
 	$sth->execute($name, $subject, $comment, $postid) or make_error(S_SQLFAIL);
 
+	add_log_entry("EditPost", $staffid, $postid, $$row{comment});
+
 	make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
 }
 
+sub make_admin_log {
+	my ($admin, $filter, $show) = @_;
+	my ($sth, $row, @log, $reflink);
+
+	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+
+	my $users = get_staff_hashref();
+
+	my $limit = "";
+	$limit = " LIMIT 100" if (!$filter);
+
+	$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_LOG_TABLE . " ORDER BY timestamp DESC" . $limit . ";")
+		or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+
+	while ($row = get_decoded_hashref($sth)) {
+		if ($$row{post}) {
+			$reflink = '<!--reflink-->&gt;&gt;/' . $$row{board} . '/' . $$row{post};
+			$$row{reflink} = resolve_reflinks($reflink);
+		}
+		$$row{posttext} = resolve_reflinks($$row{comment}) if ($show);
+		$$row{user} = $$users{$$row{staff}};
+		$$row{rowtype} = @log%2+1;
+		push @log, $row;
+	}
+
+	# toggle flags for link output
+	$show = $show ? 0 : 1;
+	$filter = $filter ? 0 : 1;
+
+	make_http_header();
+	print encode_string(LOG_PANEL_TEMPLATE->(admin => 1, filter => $filter, show => $show, log => \@log));
+}
+
+sub make_admin_users {
+	my ($admin) = @_;
+	my ($sth, $row, @users, $prevtype);
+
+	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+
+	$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " ORDER BY type,user ASC;") or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+	while ($row = get_decoded_hashref($sth)) {
+		$$row{divider} = 1 if ($prevtype ne $$row{type});
+		$prevtype = $$row{type};
+		$$row{rowtype} = @users%2+1;
+		push @users, $row;
+	}
+
+	make_http_header();
+	print encode_string(STAFF_PANEL_TEMPLATE->(admin => 1, users => \@users));
+}
+
 sub do_login {
-    my ( $password, $nexttask, $savelogin, $admincookie ) = @_;
-    my $crypt;
+    my ($user, $password, $nexttask, $savelogin, $admincookie) = @_;
+	my ($sth, $row, $session);
 
-    if ($password) {
-        $crypt = crypt_password($password);
-		check_password( $crypt, ADMIN_PASS );
-    }
-    elsif ( $admincookie eq crypt_password(ADMIN_PASS) ) {
-        $crypt    = $admincookie;
-        $nexttask = "show";
+	my $numip = dot_to_dec(get_remote_addr());
+
+	# login form was posted
+    if ($user and $password) {
+
+		$user = clean_string(decode_string($user, CHARSET));
+		$password = crypt_password($password);
+
+		$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " WHERE user=?;") or make_error(S_SQLFAIL);
+		$sth->execute($user) or make_error(S_SQLFAIL);
+
+		if ( $row = $sth->fetchrow_hashref()) {
+			if ($$row{password} eq $password) {
+				make_error(S_BADACCOUNT) unless $$row{enabled};
+
+				$session = make_random_string(30);
+				# check for collision - should never happen
+				$sth = $dbh->prepare("SELECT 1 FROM " . SQL_STAFF_TABLE . " WHERE session=?;") or make_error(S_SQLFAIL);
+				$sth->execute($session) or make_error(S_SQLFAIL);
+				make_error("Session error. Please reload the page.") if (($sth->fetchrow_array())[0]);
+
+				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET session=?, ip=?, timestamp=? WHERE num=?;") or make_error(S_SQLFAIL);
+				$sth->execute($session, $numip, time(), $$row{num}) or make_error(S_SQLFAIL);
+			} else { make_error(S_WRONGPASS) }
+		} else { make_error(S_WRONGPASS) }
+	}
+	# silent session check to prepare redirect to default admin page
+	elsif (check_session($admincookie, 1)) {
+		$session = $admincookie;
+		$nexttask = "show";
     }
 
-    if ($crypt) {
+	# a vaild session exists. create or update cookie.
+	if ($session) {
+
+	# TODO: clear old sessions
+	# $sth=$dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET session=null, ip=null WHERE timestamp<?;") or make_error(S_SQLFAIL);
+	# $sth->execute(time() - 7 * 24 * 60 * 60) or make_error(S_SQLFAIL);
+
 		my $expires = 0;
-        if ( $savelogin ) {
-			$expires = time + 14 * 24 * 3600;		
+        if ($savelogin) {
+			$expires = time() + 7 * 24 * 3600;
         }
 
 		make_cookies(
-			wakaadmin => $crypt,
+			wakaadmin => $session,
 			-charset  => CHARSET,
 			-autopath => COOKIE_PATH,
 			-expires  => $expires,
 			-httponly => 1
-            );
+		);
 
         make_http_forward(get_script_name() . "?task=$nexttask&board=" . get_board_id());
-    }
-    else { make_admin_login() }
+	}
+	else { make_admin_login() }
 }
 
 sub do_logout {
+	my ($session) = @_;
+
+	$session = clean_string($session);
+
+	if ($session) {
+		my $sth;
+		$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET session=null, ip=null WHERE session=?;")
+			or make_error(S_SQLFAIL);
+		$sth->execute($session) or make_error(S_SQLFAIL);
+	}
+
     make_cookies( wakaadmin => "", -expires => 1 );
     make_http_forward(get_script_name() . "?task=admin&board=" . get_board_id());
 }
 
 sub add_admin_entry {
-    my ($admin, $type, $comment, $ival1, $ival2, $sval1, $postid, $ajax, $flag) = @_;
-    my ($sth, $utf8_encoded_json_text, $expires, $authorized);
+    my ($admin, $type, $comment, $ival1, $ival2, $sval1, $postid, $ajax, $flag, $icomment, $global) = @_;
+    my ($sth, $utf8_encoded_json_text, $expires);
     my ($time) = time();
 
-    check_password( $admin, ADMIN_PASS ) if (!$ajax);
-
-	# checks password a second time on non-ajax call to make sure $authorized is always correct.
-    $authorized = check_password_silent($admin, ADMIN_PASS);
+	my ($stafftype, $staffid) = check_session($admin, $ajax);
+	my $authorized = $stafftype;
+	my $board = undef;
 
 	if (!$authorized) {
 		$utf8_encoded_json_text = encode_json({
@@ -2649,6 +2877,7 @@ sub add_admin_entry {
 		});
 	} else {
 		$comment = clean_string( decode_string( $comment, CHARSET ) );
+		$icomment = clean_string( decode_string( $icomment, CHARSET ) );
 
 		# set expiration date and add post link to ban
 		if ($type eq 'ipban') {
@@ -2657,9 +2886,13 @@ sub add_admin_entry {
 				$expires = make_date($sval1, DATE_STYLE, S_WEEKDAYS, S_MONTHS);
 			} else { $sval1 = ""; }
 
+			$board = decode_string(BOARD_IDENT, CHARSET);
+
 			if ($postid) {
-				$comment .= ' (<!--reflink-->&gt;&gt;/' . decode_string(BOARD_IDENT, CHARSET) . '/' . $postid . ')';
+				$comment .= ' (<!--reflink-->&gt;&gt;/' . $board . '/' . $postid . ')';
 			}
+
+			$board = undef if ($global and $stafftype == 1); # only admins can set global bans
 		}
 
 		# wordfilter string will be used in a regex and must be restricted to
@@ -2670,9 +2903,9 @@ sub add_admin_entry {
 		}
 
 		$sth = $dbh->prepare(
-			"INSERT INTO " . SQL_ADMIN_TABLE . " VALUES(null,?,?,?,?,?,FROM_UNIXTIME(?));" )
+			"INSERT INTO " . SQL_ADMIN_TABLE . " VALUES(null,?,?,?,?,?,FROM_UNIXTIME(?),?,?,?);" )
 		  or make_error(S_SQLFAIL);
-		$sth->execute( $type, $comment, $ival1, $ival2, $sval1, $time )
+		$sth->execute( $type, $comment, $ival1, $ival2, $sval1, $time, $board, $icomment, $staffid )
 		  or make_error(S_SQLFAIL);
 
 		if ($postid and $flag) {
@@ -2680,6 +2913,8 @@ sub add_admin_entry {
 			  or make_error(S_SQLFAIL);
 			$sth->execute($time, $postid) or make_error(S_SQLFAIL);
 		}
+
+		add_log_entry("New " . $type, $staffid, $postid, $comment, $ival1);
 
 		$utf8_encoded_json_text = encode_json({
 			"error_code" => 200,
@@ -2711,8 +2946,9 @@ sub check_admin_entry {
 		} else {
 			$sth = $dbh->prepare("SELECT count(*) FROM "
 				. SQL_ADMIN_TABLE
-				. " WHERE type='ipban' AND ival1=? AND (CAST(sval1 AS UNSIGNED)>? OR sval1='');");
-			$sth->execute(dot_to_dec($ival1), time());
+				. " WHERE type='ipban' AND ival1=? AND (CAST(sval1 AS UNSIGNED)>? OR sval1='')"
+				. " AND (boards IS NULL OR boards=?);");
+			$sth->execute(dot_to_dec($ival1), time(), decode_string(BOARD_IDENT, CHARSET));
 			$results = ($sth->fetchrow_array())[0];
 			$info_msg = S_BANFOUND if ($results);
 
@@ -2727,15 +2963,112 @@ sub check_admin_entry {
 
 sub remove_admin_entry {
     my ( $admin, $num ) = @_;
-    my ($sth);
+    my ($sth, $row);
 
-    check_password( $admin, ADMIN_PASS );
+	my ($stafftype, $staffid) = check_session($admin);
 
+	# get old values for logging
+    $sth = $dbh->prepare( "SELECT type,comment,ival1 FROM " . SQL_ADMIN_TABLE . " WHERE num=?;" )
+      or make_error(S_SQLFAIL);
+    $sth->execute($num) or make_error(S_SQLFAIL);
+	$row = $sth->fetchrow_hashref();
+
+	# remove entry
     $sth = $dbh->prepare( "DELETE FROM " . SQL_ADMIN_TABLE . " WHERE num=?;" )
       or make_error(S_SQLFAIL);
     $sth->execute($num) or make_error(S_SQLFAIL);
 
+	add_log_entry("Remove " . $$row{type}, $staffid, 0, $$row{comment}, $$row{ival1});
+
     make_http_forward(get_script_name() . "?task=bans&board=" . get_board_id());
+}
+
+sub add_user {
+	my ($admin, $user, $password, $type) = @_;
+	my ($sth);
+
+	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+
+	$user = clean_string(decode_string($user, CHARSET));
+
+	if ($user and $password) {
+		$password = crypt_password($password);
+		$sth=$dbh->prepare("SELECT count(*) FROM " . SQL_STAFF_TABLE . " WHERE user=?;") or make_error(S_SQLFAIL);
+		$sth->execute($user) or make_error(S_SQLFAIL);
+
+		unless (($sth->fetchrow_array())[0]) {
+			$sth=$dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,?,?,1,?,null,null,null,null);") or make_error(S_SQLFAIL);
+			$sth->execute($user, $password, $type) or make_error(S_SQLFAIL);
+		}
+	}
+
+	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
+}
+
+sub remove_user {
+	my ($admin, $num) = @_;
+	my ($sth);
+
+	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+
+	$sth = $dbh->prepare("DELETE FROM " . SQL_STAFF_TABLE . " WHERE num=? AND user<>'admin';") or make_error(S_SQLFAIL);
+	$sth->execute($num) or make_error(S_SQLFAIL);
+
+	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
+}
+
+sub change_user {
+	my ($admin, $num, $enable) = @_;
+	my ($sth);
+
+	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+
+	$sth = $dbh->prepare("UPDATE ".  SQL_STAFF_TABLE . " SET enabled=? WHERE num=? AND user<>'admin';") or make_error(S_SQLFAIL);
+	$sth->execute($enable, $num) or make_error(S_SQLFAIL);
+
+	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
+}
+
+sub change_user_password {
+	my ($admin, $num, $oldpw, $newpw1, $newpw2) = @_;
+	my ($sth, $msg, $stafftype, $staffid, $row, $user, $pass, $pwreset);
+
+	($stafftype, $staffid) = check_session($admin);
+	$num = $staffid unless ($num);
+
+	# users can change their own password. admins can change any password.
+	make_error(S_NOPRIV) unless ($staffid == $num or $stafftype == 1);
+
+	$pwreset = ($staffid != $num);
+
+	$sth = $dbh->prepare("SELECT user,password FROM " . SQL_STAFF_TABLE . " WHERE num=?;") or make_error(S_SQLFAIL);
+	$sth->execute($num) or make_error(S_SQLFAIL);
+	$row = get_decoded_hashref($sth);
+	$user = $$row{user};
+	$pass = $$row{password};
+
+	$msg = sprintf(S_PWCHANGEINFO, $user);
+	$oldpw = crypt_password($oldpw);
+
+	if (($oldpw or $pwreset) and $newpw1 and $newpw2) {
+		if ($newpw1 ne $newpw2) {
+			$msg .= "<br />" . S_PWCHANGEERR1;
+		} else {
+			if (!$pwreset and ($oldpw ne $pass)) {
+				$msg .= "<br />" . S_PWCHANGEERR2;
+			} else {
+				$newpw1 = crypt_password($newpw1);
+				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET password=? WHERE num=?;") or make_error(S_SQLFAIL);
+				$sth->execute($newpw1,$num) or make_error(S_SQLFAIL);
+				$msg = sprintf(S_PWCHANGEOK, $user);
+			}
+		}
+	}
+
+	make_http_header();
+	print encode_string(CHANGE_PASSWORD_TEMPLATE->(
+		admin => $stafftype, msg => $msg, num => $num, pwreset => $pwreset
+	));
 }
 
 sub delete_all {
@@ -2796,8 +3129,8 @@ sub get_boards {
 sub check_password {
     my ( $admin, $password ) = @_;
 
-    return if ( $admin eq ADMIN_PASS );
-    return if ( $admin eq crypt_password($password) );
+	# temporary hack - TODO: replace check_password() by check_session($session)
+	return if (check_session($admin));
 
     make_error(S_WRONGPASS);
 }
@@ -2805,14 +3138,44 @@ sub check_password {
 sub check_password_silent {
     my ( $admin, $password ) = @_;
 
-    return 1 if ( $admin eq ADMIN_PASS );
-    return 1 if ( $admin eq crypt_password($password) );
+	# temporary hack - TODO: replace check_password_silent() by check_session($session, 1)
+	return 1 if (check_session($admin, 1));
 
     return 0;
 }
 
+sub check_session {
+	my ($session, $noerror, $level) = @_;
+	my ($sth, $row);
+
+	my $numip = dot_to_dec(get_remote_addr());
+	$session = clean_string($session);
+
+	if ($session) {
+		$sth = $dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " WHERE session=?;") or make_error(S_SQLFAIL);
+		$sth->execute($session) or make_error(S_SQLFAIL);
+
+		if ($row = $sth->fetchrow_hashref()) {
+			if ($$row{enabled} and $$row{session} eq $session and $$row{ip} eq $numip) {
+				# update session activity once every hour
+				if ($$row{timestamp} + 60 * 60 < time()) {
+					$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET timestamp=? WHERE num=?;") or make_error(S_SQLFAIL);
+					$sth->execute(time(), $$row{num}) or make_error(S_SQLFAIL);
+				}
+				# check privilege level
+				#make_error(S_NOPRIV) unless ($$row{type} >= $level);
+				# return staff id num as second parameter
+				return ($$row{type}, $$row{num});
+			}
+		}
+	}
+
+	make_error(S_BADSESSION) unless $noerror;
+	return 0;
+}
+
 sub crypt_password {
-    my $crypt = hide_data( (shift) . get_remote_addr(), 18, "admin", SECRET, 1 ); # do not use $ENV{REMOTE_ADDR}
+    my $crypt = hide_data((shift), 18, "admin", SECRET, 1);
     $crypt =~ tr/+/./;    # for web shit
     return $crypt;
 }
@@ -3130,17 +3493,61 @@ sub init_admin_database {
           . get_sql_autoincrement() . ","
           .                    # Entry number, auto-increments
           "type TEXT," .       # Type of entry (ipban, wordban, etc)
-          "comment TEXT," .    # Comment for the entry
+          "comment TEXT," .    # Comment for the entry (ipban: public ban reason)
           "ival1 TEXT," .      # Integer value 1 (usually IP)
           "ival2 TEXT," .      # Integer value 2 (usually netmask)
-          "sval1 TEXT," .       # String value 1
-          "date TEXT" .        # Human-readable form of date		  
+          "sval1 TEXT," .      # String value 1 (ipban: expiration timestamp)
+          "date TEXT," .       # Human-readable form of date
+          "boards TEXT," .     # Board for 'ipban' - currently only one board or all boards (null)
+          "icomment TEXT," .   # Internal staff comment
+          "staff INTEGER" .    # Staff account num from SQL_STAFF_TABLE
 
           ");"
     ) or make_error(S_SQLFAIL);
     $sth->execute() or make_error(S_SQLFAIL);
 }
 
+sub init_staff_database() {
+	my ($sth);
+
+	$sth=$dbh->do("DROP TABLE " . SQL_STAFF_TABLE . ";") if (table_exists(SQL_STAFF_TABLE));
+	$sth=$dbh->prepare("CREATE TABLE " . SQL_STAFF_TABLE . " (".
+
+	"num ".get_sql_autoincrement().",".	# Entry number, auto-increments
+	"user TEXT,".				# Login name
+	"password TEXT,".			# Password (crypted)
+	"enabled INTEGER,".			# Accound enabled or disabled
+	"type INTEGER,".			# Access level: 1=Admin and 2=Mod
+	"boards TEXT, ".			# Comma separated list of assigned boards. Empty = all boards.
+	"session TEXT,".			# Random string, associated after successful login
+	"ip TEXT,".					# IP from which the session was created
+	"timestamp INTEGER".		# Last activity of the sesssion. Old sessions are removed.
+
+	");") or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+
+	# add initial admin entry. password is from site_config.
+	$sth=$dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,'admin',?,1,1,null,null,null,null);") or make_error(S_SQLFAIL);
+	$sth->execute(crypt_password(ADMIN_PASS)) or make_error(S_SQLFAIL);
+}
+
+sub init_staff_log_database() {
+	my ($sth);
+
+	$sth=$dbh->do("DROP TABLE " . SQL_STAFF_LOG_TABLE . ";") if (table_exists(SQL_STAFF_LOG_TABLE));
+	$sth=$dbh->prepare("CREATE TABLE ". SQL_STAFF_LOG_TABLE . " (".
+
+	"timestamp INTEGER," .		# Unix time when action was executed
+	"event TEXT," .				# Descriptive text constant of the event
+	"board TEXT," .				# Board where the action was performed
+	"post INTEGER," .			# Post or thread num from comments table
+	"staff INTEGER," .			# Staff account num from SQL_STAFF_TABLE
+	"ip TEXT," .				# IP of the post in case of ban or deletion
+	"comment TEXT" .			# Original post comment in case of deletion or edit
+
+	");") or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+}
 
 sub repair_database {
     my ( $sth, $row, @threads, $thread );
@@ -3346,6 +3753,33 @@ sub debug_exec_time {
 		return $result;
 	}
 	$has_timer = Time::HiRes::gettimeofday(); # lap reset timer
+}
+
+sub update_db_schema3 {
+	# add three new columns to admin table
+	$sth = $dbh->prepare("SHOW COLUMNS FROM " . SQL_ADMIN_TABLE . " WHERE field = 'staff';");
+	if ($sth->execute()) {
+		unless (($sth->fetchrow_array())[0]) {
+			$sth = $dbh->prepare(
+				"ALTER TABLE " . SQL_ADMIN_TABLE . " ADD boards TEXT, ADD icomment TEXT, ADD staff INTEGER;"
+			) or make_error($dbh->errstr);
+			$sth->execute() or make_error($dbh->errstr);
+		}
+	}
+	# check and change adminpost column of comments table
+	$sth = $dbh->prepare("SHOW COLUMNS FROM " . SQL_TABLE . " WHERE field = 'adminpost';");
+	if ($sth->execute()) {
+		if (my $row = $sth->fetchrow_hashref()) {
+			if ($$row{Type} eq 'tinyint(1)') {
+				$sth = $dbh->prepare(
+					"ALTER TABLE " . SQL_TABLE . " CHANGE adminpost adminpost INTEGER;"
+				) or make_error($dbh->errstr);
+				$sth->execute() or make_error($dbh->errstr);
+			} else {
+				$sth->finish;
+			}
+		}
+	}
 }
 
 sub update_db_schema2 {  # mysql-specific. will be removed after migration is done.

@@ -18,8 +18,10 @@ BEGIN {
     eval "use constant ABUSE_EMAIL => ''" unless (defined &ABUSE_EMAIL);
     eval "use constant TRACKING_CODE => ''" unless (defined &TRACKING_CODE);
     eval "use constant SQL_TABLE => 'comments'" unless ( defined &SQL_TABLE );
-    eval "use constant SQL_ADMIN_TABLE => 'admin'"
-      unless ( defined &SQL_ADMIN_TABLE );
+    eval "use constant SQL_ADMIN_TABLE => 'admin'" unless (defined &SQL_ADMIN_TABLE);
+    eval "use constant SQL_STAFF_TABLE => 'staff'" unless (defined &SQL_STAFF_TABLE);
+    eval "use constant SQL_STAFF_LOG_TABLE => 'staff_log'"
+      unless (defined &SQL_STAFF_LOG_TABLE);
     eval "use constant SQL_PREFIX => 'ernstchan_';" unless (defined &SQL_PREFIX);
     eval "use constant SSL_ICON => '/img/icons/ssl.png'" unless (defined &SSL_ICON);
     eval "use constant USE_TEMPFILES => 1" unless ( defined &USE_TEMPFILES );

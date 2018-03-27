@@ -109,6 +109,8 @@ use constant S_MONTHS => 'January February March April May June July August Sept
 ## admin / management strings
 
 # admin login page
+use constant S_STAFFUSER => 'User';
+use constant S_STAFFPASS => 'Password';
 use constant S_ADMINPASS => 'Password:';    # Prints login prompt
 use constant S_MANASAVE  => 'Save session in this browser';    # Defines Label for the login cookie checbox
 use constant S_MANALOGIN => 'Login'
@@ -117,9 +119,12 @@ use constant S_MANALOGIN => 'Login'
 # admin pages links / headings
 use constant S_MANAPANEL => 'Post moderation'
   ; # Defines Management Panel radio button--allows the user to view the management panel (overview of all posts)
-use constant S_MANATOOLS  => 'Tools';
 use constant S_MANABANS   => 'Manage bans';         # Defines Bans Panel button
+use constant S_MANATOOLS  => 'Tools';
 use constant S_MANAORPH   => 'Orphaned files';
+use constant S_MANALOG    => 'Show log';
+use constant S_MANASTAFF  => 'Staff accounts';
+use constant S_MANAPASS   => 'Change password';
 use constant S_MANALOGOUT => 'Logout';          #
 
 use constant S_MANAMODE => 'Administration';   # Prints heading on top of Manager page
@@ -141,6 +146,35 @@ use constant S_POSTSTATS => '[ Oldest post: %s (No. %d), newest post: %s (No. %d
 use constant S_ORPHTABLE  => '<th>Open</th><th>File</th><th>Modified</th><th>Size</th>';
 use constant S_MANASHOW   => 'Open';
 use constant S_MPARCHIVE  => 'Archive';
+
+# admin log
+use constant S_LOGTABLE => '<th>Date</th><th>Event</th><th>User</th><th>Link</th><th>IP</th>';
+use constant S_LOGFILTERON => 'Show the last 100 events';
+use constant S_LOGFILTEROFF => 'Show all events';
+use constant S_LOGCOMMENTSSHOW => 'Show comments';
+use constant S_LOGCOMMENTSHIDE => 'Hide comments';
+
+# admin staff accounts
+use constant S_ACCOUNTTABLE => '<th>Type</th><th>Name</th><th>Status</th><th>Password</th><th>Last Activity</th><th>Action</th>';
+use constant S_ACCOUNTNEW => 'Add account';
+use constant S_ACCOUNTTYPE => 'Type';
+use constant S_ACCOUNTADMIN => 'Admin';
+use constant S_ACCOUNTMOD => 'Mod';
+use constant S_ACCOUNTENABLED => 'Enabled';
+use constant S_ACCOUNTDISABLED => 'Disabled';
+use constant S_ACCOUNTENABLE => '(enable)';
+use constant S_ACCOUNTDISABLE => '(disable)';
+use constant S_ACCOUNTPASS => 'Change';
+use constant S_ACCOUNTREMOVE => 'Remove';
+
+# staff change password
+use constant S_PASSOLD  => 'Current password';
+use constant S_PASSNEW1 => 'New password';
+use constant S_PASSNEW2 => 'Confirm new password';
+use constant S_PWCHANGEINFO => 'Change password for user: <i>%s</i>';
+use constant S_PWCHANGEERR1 => 'Error: New password and confirmation do not match. Password not changed.';
+use constant S_PWCHANGEERR2 => 'Error: Current password wrong. Password not changed.';
+use constant S_PWCHANGEOK   => 'Password for user <i>%s</i> changed successfully.';
 
 # post edit heading
 use constant S_NOTAGS => 'Use HTML for formatting. Text will not be parsed.'
@@ -178,7 +212,9 @@ use constant S_BANIPLABEL      => 'IP address';
 use constant S_BANMASKLABEL    => 'Network mask';
 use constant S_BANDURATION     => 'Duration';
 use constant S_BANREASONLABEL  => 'Reason';
+use constant S_BANINTERNALCOMMENTLABEL => 'Note';
 use constant S_BANFLAGPOST     => 'Flag post as banned';
+use constant S_BANGLOBAL       => 'On all boards';
 use constant S_BANIP           => 'Ban IP'; # ip ban submit
 use constant S_BANADDED        => 'New ban added'; # json response
 use constant S_BANFOUND        => 'User is already banned'; # json response
@@ -199,7 +235,7 @@ use constant S_BANWRDFLTADD    => 'Add wordfilter';  # word filter submit
 use constant S_BANFILTER => 'Hide expired bans';
 use constant S_BANSHOWALL => 'Also show expired bans';
 use constant S_BANTABLE =>
-  '<th>Type</th><th colspan="2">Value</th><th>Comment</th><th>Created</th><th>Expires</th><th>Action</th>'
+  '<th>Type</th><th colspan="2">Value</th><th>Comment / Ban reason</th><th>Note</th><th>Board</th><th>Created</th><th>Expires</th><th>Account</th><th>Action</th>'
   ;          # Explains names for Ban Panel
 use constant S_BANREMOVE       => 'Remove';
 
@@ -279,6 +315,9 @@ use constant S_DUPENAME =>
 
 use constant S_WRONGPASS => 'Error: Wrong password / please login again.'
   ;    # Returns error for wrong password (when trying to access Manager modes)
+use constant S_BADSESSION => 'Error: Session invalild. Please log in again.';	# Returns error for wrong session ID (when trying to access Manager modes)
+use constant S_BADACCOUNT => 'Error: Account disabled';					# Returns error for disabled account (when trying to access Manager modes)
+use constant S_NOPRIV => 'Error: No permission';						# Returns error when mod tries to access or execute admin functions.
 
 use constant S_NOTWRITE =>
   'Error: Cannot to write to directory.'
