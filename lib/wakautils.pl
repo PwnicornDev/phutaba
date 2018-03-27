@@ -656,8 +656,8 @@ sub do_spans {
 		);
 
         # do h1
-        $line =~
-s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (--) (?![<>\s\*_]) ([^<>]+?) (?<![<>\s\*_\x80-\x9f\xe0-\xfc]) \1 (?![0-9a-zA-Z\*_]) }{<h1>$2</h1>}gx;
+#        $line =~
+#s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (--) (?![<>\s\*_]) ([^<>]+?) (?<![<>\s\*_\x80-\x9f\xe0-\xfc]) \1 (?![0-9a-zA-Z\*_]) }{<h1>$2</h1>}gx;
 
         # hide <code> sections
         $line =~
@@ -1160,6 +1160,7 @@ sub process_tripcode {
     return ( clean_string( decode_string( $name, $charset ) ), "" );
 }
 
+# required formats: phutaba, 2ch, cookie
 sub make_date {
     my ($time, $style, $locdays, $locmonths) = @_;
     my @days   = qw(So Mo Di Mi Do Fr Sa);
@@ -1180,10 +1181,10 @@ sub make_date {
 			$ltime[2], $ltime[1], $ltime[0]
 		);
 	}
-	elsif ($style eq "phutaba-en") {
-		my @ltime = localtime($time);
+	elsif ($style eq "phutaba-utc") {
+		my @ltime = gmtime($time);
 
-		return sprintf("%s %d, %d (%s.) %02d:%02d:%02d",
+		return sprintf("%s %d, %d (%s.) %02d:%02d:%02d UTC",
 			$fullmonths[$ltime[4]],
 			$ltime[3],
 			$ltime[5] + 1900,
@@ -1207,18 +1208,6 @@ sub make_date {
 		return sprintf("%02d.%02d.%02d (%s) %02d:%02d",
 		$ltime[3],$ltime[4]+1,$ltime[5]-100,$days[$ltime[6]],$ltime[2],$ltime[1]);
     }
-    elsif ( $style eq "localtime" ) {
-        return scalar( localtime($time) );
-    }
-    elsif ( $style eq "tiny" ) {
-        my @ltime = localtime($time);
-
-        return sprintf(
-            "%02d/%02d %02d:%02d",
-            $ltime[4] + 1,
-            $ltime[3], $ltime[2], $ltime[1]
-        );
-    }
     elsif ( $style eq "http" ) {
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime($time);
 		@days   = qw(Sun Mon Tue Wed Thu Fri Sat);
@@ -1241,10 +1230,6 @@ sub make_date {
             $days[$wday], $mday, $months[$mon], $year + 1900,
             $hour, $min, $sec
         );
-    }
-    elsif ( $style eq "month" ) {
-        my ( $sec, $min, $hour, $mday, $mon, $year, $wday ) = gmtime($time);
-        return sprintf( "%s %d", $months[$mon], $year + 1900 );
     }
 }
 
