@@ -892,7 +892,8 @@ use constant STAFF_PANEL_TEMPLATE => compile_template(
 <input type="hidden" name="board" value="<const BOARD_IDENT>" />
 <table><tbody>
 <tr><td class="postblock"><const S_STAFFUSER></td><td><input type="text" name="user" size="24" /></td></tr>
-<tr><td class="postblock"><const S_STAFFPASS></td><td><input type="text" name="password" size="24" /></td></tr>
+<tr><td class="postblock"><const S_STAFFPASS></td><td><input type="password" name="password1" size="24" /></td></tr>
+<tr><td class="postblock"><const S_PASSNEW2></td><td><input type="password" name="password2" size="24" /></td></tr>
 <tr><td class="postblock"><const S_ACCOUNTTYPE></td><td>
 <label><input type="radio" name="type" value="1"><const S_ACCOUNTADMIN></label>&nbsp;
 <label><input type="radio" name="type" value="2" checked="checked"><const S_ACCOUNTMOD></label>&nbsp;&nbsp;
@@ -964,8 +965,9 @@ use constant CHANGE_PASSWORD_TEMPLATE => compile_template(
 <input type="hidden" name="task" value="changepass" />
 <input type="hidden" name="board" value="<const BOARD_IDENT>" />
 <input type="hidden" name="num" value="<var $num>" />
-<var $msg>
+
 <table><tbody>
+<tr><td class="postblock"><const S_STAFFUSER></td><td><var $user></td></tr>
 <if !$pwreset>
 <tr><td class="postblock"><const S_PASSOLD></td><td><input type="password" name="oldpw" size="24" /></td></tr>
 </if>
@@ -974,6 +976,7 @@ use constant CHANGE_PASSWORD_TEMPLATE => compile_template(
 &nbsp;&nbsp;<input type="submit" value="<const S_MANAPASS>" />
 </td></tr>
 </tbody></table></form>
+<br /><var $msg>
 
 </td></tr></tbody></table>
 </div><br />

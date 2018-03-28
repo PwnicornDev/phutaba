@@ -429,9 +429,10 @@ elsif ($task eq "staff") {
 elsif ($task eq "adduser") {
 	my $admin = $query->cookie("wakaadmin");
 	my $user = $query->param("user");
-	my $password = $query->param("password");
+	my $password1 = $query->param("password1");
+	my $password2 = $query->param("password2");
 	my $type = $query->param("type");
-	add_user($admin, $user, $password, $type);
+	add_user($admin, $user, $password1, $password2, $type);
 }
 elsif ($task eq "removeuser") {
 	my $admin = $query->cookie("wakaadmin");
@@ -508,11 +509,8 @@ sub output_json_stats {
 sub show_post {
     my ($id, $admin) = @_;
     my ($sth, $row, @thread);
-    my $isAdmin = 0;
-    if (defined($admin)) {
-		#check_password($admin, ADMIN_PASS);
-		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
-    }
+
+	my ($isAdmin, $staffid) = check_session($admin, 1);
 
     $sth = $dbh->prepare(
             "SELECT * FROM "
@@ -553,11 +551,7 @@ sub show_catalog {
     my ($admin) = @_;
     my ($sth, $row, @replycount, @filecount);
 
-	my $isAdmin = 0;
-	if (defined($admin)) {
-		#check_password($admin, ADMIN_PASS);
-		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
-	}
+	my ($isAdmin, $staffid) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -848,15 +842,9 @@ sub show_thread {
     my ($thread, $admin) = @_;
     my ( $sth, $row, @thread, $users );
 #    my ( $filename, $tmpname );
-	
-	# if we try to call show_thread with admin parameter
-	# the admin password will be checked and this
-	# variable will be 1
-	my $isAdmin = 0;
-	if (defined($admin)) {
-		#check_password($admin, ADMIN_PASS);
-		if (check_password_silent($admin, ADMIN_PASS)) { $isAdmin = 1; }
-	}
+
+	# $isAdmin ($stafftype): 0 = normal user; 1 or 2 = staff
+	my ($isAdmin, $staffid) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -2938,7 +2926,10 @@ sub add_admin_entry {
 sub check_admin_entry {
     my ($admin, $ival1) = @_;
     my ($sth, $utf8_encoded_json_text, $results, $info_msg);
-    if (!check_password_silent($admin, ADMIN_PASS)) {
+
+	my ($authorized, $staffid) = check_session($admin, 1);
+
+	if (!$authorized) {
 		$utf8_encoded_json_text = encode_json({"error_code" => 401, "error_msg" => 'Unauthorized'});
 	} else {
 		if (!$ival1) {
@@ -2984,22 +2975,21 @@ sub remove_admin_entry {
 }
 
 sub add_user {
-	my ($admin, $user, $password, $type) = @_;
+	my ($admin, $user, $password1, $password2, $type) = @_;
 	my ($sth);
 
 	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
 
 	$user = clean_string(decode_string($user, CHARSET));
 
-	if ($user and $password) {
-		$password = crypt_password($password);
-		$sth=$dbh->prepare("SELECT count(*) FROM " . SQL_STAFF_TABLE . " WHERE user=?;") or make_error(S_SQLFAIL);
+	if ($user and $password1) {
+		make_error(S_PWCHANGEERR1) unless ($password1 eq $password2);
+		$password1 = crypt_password($password1);
+		$sth = $dbh->prepare("SELECT count(*) FROM " . SQL_STAFF_TABLE . " WHERE user=?;") or make_error(S_SQLFAIL);
 		$sth->execute($user) or make_error(S_SQLFAIL);
-
-		unless (($sth->fetchrow_array())[0]) {
-			$sth=$dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,?,?,1,?,null,null,null,null);") or make_error(S_SQLFAIL);
-			$sth->execute($user, $password, $type) or make_error(S_SQLFAIL);
-		}
+		make_error(S_ACCOUNTEXISTS) if (($sth->fetchrow_array())[0]);
+		$sth = $dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,?,?,1,?,null,null,null,null);") or make_error(S_SQLFAIL);
+		$sth->execute($user, $password1, $type) or make_error(S_SQLFAIL);
 	}
 
 	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
@@ -3047,15 +3037,15 @@ sub change_user_password {
 	$user = $$row{user};
 	$pass = $$row{password};
 
-	$msg = sprintf(S_PWCHANGEINFO, $user);
+	$msg = "";
 	$oldpw = crypt_password($oldpw);
 
 	if (($oldpw or $pwreset) and $newpw1 and $newpw2) {
 		if ($newpw1 ne $newpw2) {
-			$msg .= "<br />" . S_PWCHANGEERR1;
+			$msg = S_PWCHANGEERR1 . " " . S_PWCHANGEFAIL;
 		} else {
 			if (!$pwreset and ($oldpw ne $pass)) {
-				$msg .= "<br />" . S_PWCHANGEERR2;
+				$msg = S_PWCHANGEERR2 . " " . S_PWCHANGEFAIL;
 			} else {
 				$newpw1 = crypt_password($newpw1);
 				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET password=? WHERE num=?;") or make_error(S_SQLFAIL);
@@ -3067,7 +3057,11 @@ sub change_user_password {
 
 	make_http_header();
 	print encode_string(CHANGE_PASSWORD_TEMPLATE->(
-		admin => $stafftype, msg => $msg, num => $num, pwreset => $pwreset
+		admin => $stafftype,
+		msg => $msg,
+		num => $num,
+		user => $user,
+		pwreset => $pwreset
 	));
 }
 
@@ -3135,15 +3129,6 @@ sub check_password {
     make_error(S_WRONGPASS);
 }
 
-sub check_password_silent {
-    my ( $admin, $password ) = @_;
-
-	# temporary hack - TODO: replace check_password_silent() by check_session($session, 1)
-	return 1 if (check_session($admin, 1));
-
-    return 0;
-}
-
 sub check_session {
 	my ($session, $noerror, $level) = @_;
 	my ($sth, $row);
@@ -3163,7 +3148,7 @@ sub check_session {
 					$sth->execute(time(), $$row{num}) or make_error(S_SQLFAIL);
 				}
 				# check privilege level
-				#make_error(S_NOPRIV) unless ($$row{type} >= $level);
+				#make_error(S_NOPRIV) if ($level and $level > $$row{type});
 				# return staff id num as second parameter
 				return ($$row{type}, $$row{num});
 			}

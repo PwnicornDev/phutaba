@@ -166,14 +166,15 @@ use constant S_ACCOUNTENABLE => '(aktivieren)';
 use constant S_ACCOUNTDISABLE => '(deaktivieren)';
 use constant S_ACCOUNTPASS => '&Auml;ndern';
 use constant S_ACCOUNTREMOVE => 'L&ouml;schen';
+use constant S_ACCOUNTEXISTS => 'Benutzer existiert bereits.';
 
 # staff change password
 use constant S_PASSOLD  => 'Aktuelles Passwort';
 use constant S_PASSNEW1 => 'Neues Passwort';
-use constant S_PASSNEW2 => 'Neues Passwort best&auml;tigen';
-use constant S_PWCHANGEINFO => 'Passwort&auml;nderung f&uuml;r Benutzer: <i>%s</i>';
-use constant S_PWCHANGEERR1 => 'Fehler: Neues Passwort und Best&auml;tigung stimmten nicht &uuml;berein. Passwort nicht ge&auml;ndert.';
-use constant S_PWCHANGEERR2 => 'Fehler: Aktuelles Passwort falsch. Passwort nicht ge&auml;ndert.';
+use constant S_PASSNEW2 => 'Passwort best&auml;tigen';
+use constant S_PWCHANGEERR1 => 'Fehler: Neues Passwort und Best&auml;tigung stimmten nicht &uuml;berein.';
+use constant S_PWCHANGEERR2 => 'Fehler: Aktuelles Passwort falsch.';
+use constant S_PWCHANGEFAIL => 'Passwort nicht ge&auml;ndert.';
 use constant S_PWCHANGEOK   => 'Passwort von Benutzer <i>%s</i> erfolgreich ge&auml;ndert.';
 
 # post edit heading

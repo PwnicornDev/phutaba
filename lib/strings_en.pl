@@ -166,14 +166,15 @@ use constant S_ACCOUNTENABLE => '(enable)';
 use constant S_ACCOUNTDISABLE => '(disable)';
 use constant S_ACCOUNTPASS => 'Change';
 use constant S_ACCOUNTREMOVE => 'Remove';
+use constant S_ACCOUNTEXISTS => 'User already exists.';
 
 # staff change password
 use constant S_PASSOLD  => 'Current password';
 use constant S_PASSNEW1 => 'New password';
-use constant S_PASSNEW2 => 'Confirm new password';
-use constant S_PWCHANGEINFO => 'Change password for user: <i>%s</i>';
-use constant S_PWCHANGEERR1 => 'Error: New password and confirmation do not match. Password not changed.';
-use constant S_PWCHANGEERR2 => 'Error: Current password wrong. Password not changed.';
+use constant S_PASSNEW2 => 'Confirm password';
+use constant S_PWCHANGEERR1 => 'Error: New password and confirmation do not match.';
+use constant S_PWCHANGEERR2 => 'Error: Current password wrong.';
+use constant S_PWCHANGEFAIL => 'Password not changed.';
 use constant S_PWCHANGEOK   => 'Password for user <i>%s</i> changed successfully.';
 
 # post edit heading
