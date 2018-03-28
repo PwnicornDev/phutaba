@@ -35,7 +35,7 @@ use constant NORMAL_HEAD_INCLUDE => q{
 <head>
 <meta charset="<const CHARSET>" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title><const TITLE> &raquo; <if $title><var $title></if><if !$title>/<const BOARD_IDENT>/ - <const BOARD_NAME></if></title>
+<title><if $title><var $title></if><if !$title>/<const BOARD_IDENT>/ - <const BOARD_NAME></if></title>
 
 <link rel="stylesheet" type="text/css" href="/static/css/phutaba.css" />
 <if STYLESHEET><link rel="stylesheet" type="text/css" href="<const STYLESHEET>" /></if>
@@ -469,7 +469,7 @@ use constant ERROR_HEAD_INCLUDE => q{
 <head>
 	<meta charset="<const CHARSET>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title><const TITLE> &raquo; <var $error_page></title>
+	<title><var $error_page></title>
 	<link rel="stylesheet" type="text/css" href="/static/css/phutaba.css" />
 	<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico" />
 	<link rel="icon" type="image/x-icon" href="/img/favicon.ico" />
@@ -929,7 +929,9 @@ use constant STAFF_PANEL_TEMPLATE => compile_template(
 			</if>
 			<if !$enabled>
 				<const S_ACCOUNTDISABLED>
+				<if $user ne "admin">
 				<a href="<var $self>?task=enableuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTENABLE></a>
+				</if>
 			</if>
 		</td>
 

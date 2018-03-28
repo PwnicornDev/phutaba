@@ -108,7 +108,7 @@ function do_ban(ip, postid, board) {
 	if (ip.indexOf(":") != -1) {
 		$j("#netmask").val("ffff:ffff:ffff:ffff:0000:0000:0000:0000");
 	} else {
-		$j("#netmask").val("255.255.0.0");
+		$j("#netmask").val("255.255.255.0");
 	}
 
 	disable_controls();

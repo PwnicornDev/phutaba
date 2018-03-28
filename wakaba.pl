@@ -155,7 +155,7 @@ my $json  = ( $query->param("json") or "" );
 	# fill meta-data fields of all existing board files.
 	#update_files_meta();
 	#update_db_schema2(); # schema migration 2 - change location column
-	update_db_schema3(); # change adminpost column type from tinyint to int - add three new columns to admin table
+	#update_db_schema3(); # change adminpost column type from tinyint to int - add three new columns to admin table
 
 # check for admin table
 init_admin_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL_ADMIN_TABLE));
