@@ -923,15 +923,13 @@ use constant STAFF_PANEL_TEMPLATE => compile_template(
 		<td>
 			<if $enabled>
 				<const S_ACCOUNTENABLED>
-				<if $user ne "admin">
+				<if $num ne $current>
 				<a href="<var $self>?task=disableuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTDISABLE></a>
 				</if>
 			</if>
 			<if !$enabled>
 				<const S_ACCOUNTDISABLED>
-				<if $user ne "admin">
 				<a href="<var $self>?task=enableuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTENABLE></a>
-				</if>
 			</if>
 		</td>
 
@@ -940,7 +938,7 @@ use constant STAFF_PANEL_TEMPLATE => compile_template(
         <td><if $timestamp><var make_date($timestamp, 'date')></if></td>
 
         <td>
-			<if $user ne "admin">
+			<if $num ne $current && $user ne "admin">
 				<a href="<var $self>?task=removeuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTREMOVE></a>
 			</if>
 		</td>

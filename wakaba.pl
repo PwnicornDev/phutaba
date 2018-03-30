@@ -1425,7 +1425,7 @@ sub post_stuff {
     trim_database();
 
 	# log entry on staff post
-	add_log_entry("StaffPost", $staffid, $new_post_id) if ($as_staff);
+	add_log_entry("Staff post", $staffid, $new_post_id) if ($as_staff);
 
     # set the name, email and password cookies
     make_cookies(
@@ -2208,8 +2208,8 @@ sub make_kontra {
           or make_error(S_SQLFAIL);
         $sth2->execute( $kontra, $threadid ) or make_error(S_SQLFAIL);
 
-		add_log_entry("ThreadBumplock", $staffid, $threadid) if ($kontra == 1);
-		add_log_entry("ThreadNoBumplock", $staffid, $threadid) if ($kontra == 0);
+		add_log_entry("Thread bumplock", $staffid, $threadid) if ($kontra == 1);
+		add_log_entry("Thread bump unlock", $staffid, $threadid) if ($kontra == 0);
     }
 
     make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
@@ -2233,8 +2233,8 @@ sub make_locked {
           or make_error(S_SQLFAIL);
         $sth2->execute( $locked, $threadid ) or make_error(S_SQLFAIL);
 
-		add_log_entry("ThreadLock", $staffid, $threadid) if ($locked == 1);
-		add_log_entry("ThreadUnlock", $staffid, $threadid) if ($locked == 0);
+		add_log_entry("Thread lock", $staffid, $threadid) if ($locked == 1);
+		add_log_entry("Thread unlock", $staffid, $threadid) if ($locked == 0);
     }
 
     make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
@@ -2258,8 +2258,8 @@ sub make_sticky {
           or make_error(S_SQLFAIL);
         $sth2->execute( $sticky, $threadid, $threadid) or make_error(S_SQLFAIL);
 
-		add_log_entry("ThreadSticky", $staffid, $threadid) if ($sticky == 1);
-		add_log_entry("ThreadUnsticky", $staffid, $threadid) if ($sticky == undef);
+		add_log_entry("Thread sticky", $staffid, $threadid) if ($sticky == 1);
+		add_log_entry("Thread unsticky", $staffid, $threadid) if ($sticky == undef);
     }
 
     make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
@@ -2269,6 +2269,7 @@ sub delete_post {
     my ( $post, $password, $fileonly, $deletebyip, $admin, $staffid ) = @_;
     my ( $sth, $row, $res, $reply );
 
+	# this has already been checked in delete_stuff and does not seem to be neccessary here
 	check_password($admin, ADMIN_PASS) if ($admin);
 
     my $thumb   = THUMB_DIR;
@@ -2287,10 +2288,17 @@ sub delete_post {
 		  if ( $$row{timestamp} + RENZOKU4 >= time() and !$admin );
 
 		if ($admin) {
-			if ($fileonly) {
-				add_log_entry("DeleteFiles", $staffid, $post);
-			} else {
-				add_log_entry("DeletePost", $staffid, $post, $$row{comment}, $$row{ip});
+			# do not log deletion of own posts (by ip)
+			# a valid staff session will cause $password to be empty
+			# so only matching ip can be checked
+			if ($$row{ip} ne $numip or $$row{ip} eq "0") {
+				# never log staff IP address
+				$$row{ip} = undef if $$row{adminpost};
+				if ($fileonly) {
+					add_log_entry("Delete files", $staffid, $post);
+				} else {
+					add_log_entry("Delete post", $staffid, $post, $$row{comment}, $$row{ip});
+				}
 			}
 		}
 
@@ -2714,7 +2722,7 @@ sub save_admin_edit {
 	  or make_error(S_SQLFAIL);
 	$sth->execute($name, $subject, $comment, $postid) or make_error(S_SQLFAIL);
 
-	add_log_entry("EditPost", $staffid, $postid, $$row{comment});
+	add_log_entry("Edit post", $staffid, $postid, $$row{comment});
 
 	make_http_forward(get_script_name() . "?task=show&board=" . get_board_id());
 }
@@ -2757,7 +2765,8 @@ sub make_admin_users {
 	my ($admin) = @_;
 	my ($sth, $row, @users, $prevtype);
 
-	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+	my ($stafftype, $staffid) = check_session($admin);
+	make_error(S_NOPRIV) unless ($stafftype == 1);
 
 	$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " ORDER BY type,user ASC;") or make_error(S_SQLFAIL);
 	$sth->execute() or make_error(S_SQLFAIL);
@@ -2769,7 +2778,7 @@ sub make_admin_users {
 	}
 
 	make_http_header();
-	print encode_string(STAFF_PANEL_TEMPLATE->(admin => 1, users => \@users));
+	print encode_string(STAFF_PANEL_TEMPLATE->(admin => 1, current => $staffid, users => \@users));
 }
 
 sub do_login {
@@ -2999,7 +3008,9 @@ sub remove_user {
 	my ($admin, $num) = @_;
 	my ($sth);
 
-	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+	my ($stafftype, $staffid) = check_session($admin);
+	make_error(S_NOPRIV) unless ($stafftype == 1);
+	make_error(S_NOPRIV) unless ($staffid != $num);
 
 	$sth = $dbh->prepare("DELETE FROM " . SQL_STAFF_TABLE . " WHERE num=? AND user<>'admin';") or make_error(S_SQLFAIL);
 	$sth->execute($num) or make_error(S_SQLFAIL);
@@ -3011,9 +3022,11 @@ sub change_user {
 	my ($admin, $num, $enable) = @_;
 	my ($sth);
 
-	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+	my ($stafftype, $staffid) = check_session($admin);
+	make_error(S_NOPRIV) unless ($stafftype == 1);
+	make_error(S_NOPRIV) unless ($staffid != $num);
 
-	$sth = $dbh->prepare("UPDATE ".  SQL_STAFF_TABLE . " SET enabled=? WHERE num=? AND user<>'admin';") or make_error(S_SQLFAIL);
+	$sth = $dbh->prepare("UPDATE " .  SQL_STAFF_TABLE . " SET enabled=? WHERE num=?;") or make_error(S_SQLFAIL);
 	$sth->execute($enable, $num) or make_error(S_SQLFAIL);
 
 	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
@@ -3021,9 +3034,9 @@ sub change_user {
 
 sub change_user_password {
 	my ($admin, $num, $oldpw, $newpw1, $newpw2) = @_;
-	my ($sth, $msg, $stafftype, $staffid, $row, $user, $pass, $pwreset);
+	my ($sth, $msg, $row, $user, $pass, $pwreset);
 
-	($stafftype, $staffid) = check_session($admin);
+	my ($stafftype, $staffid) = check_session($admin);
 	$num = $staffid unless ($num);
 
 	# users can change their own password. admins can change any password.
