@@ -1846,7 +1846,7 @@ sub get_post {
     my ($thread) = @_;
     my ($sth);
 
-    $sth = $dbh->prepare( "SELECT num, parent FROM " . SQL_TABLE . " WHERE num=?;" )
+    $sth = $dbh->prepare("SELECT num,parent FROM " . SQL_TABLE . " WHERE num=?;")
       or make_error(S_SQLFAIL);
     $sth->execute($thread) or make_error(S_SQLFAIL);
 
@@ -1881,7 +1881,7 @@ sub get_board_post {
 	if ($contents =~
 		/^\s*use\s+constant\s+SQL_TABLE\s*=>\s*(?:'|")([^'"]+)(?:'|")\s*;/m ) {
 
-		$sth = $dbh->prepare( "SELECT num, parent FROM " . $1 . " WHERE num=?;" )
+		$sth = $dbh->prepare("SELECT num,parent FROM " . $1 . " WHERE num=?;")
 			or make_error(S_SQLFAIL);
 		$sth->execute($post) or make_error(S_SQLFAIL);
 
@@ -2299,6 +2299,20 @@ sub delete_post {
 				} else {
 					add_log_entry("Delete post", $staffid, $post, $$row{comment}, $$row{ip});
 				}
+			} else {
+				# staff deletion of own posts
+				if ($fileonly) {
+					add_log_entry("User delete files", $staffid, $post);
+				} else {
+					add_log_entry("User delete post", $staffid, $post, $$row{comment});
+				}
+			}
+		} else {
+			# user deletion of own posts
+			if ($fileonly) {
+				add_log_entry("User delete files", undef, $post);
+			} else {
+				add_log_entry("User delete post", undef, $post, $$row{comment}, $$row{ip});
 			}
 		}
 
@@ -2468,7 +2482,7 @@ sub make_admin_post_panel {
 
 	# "SELECT MIN(num), MIN(timestamp), MAX(num), MAX(timestamp) FROM " . SQL_TABLE
 	$sth = $dbh->prepare(
-		"SELECT num, timestamp FROM " . SQL_TABLE . " ORDER BY num ASC LIMIT 1;"
+		"SELECT num,timestamp FROM " . SQL_TABLE . " ORDER BY num ASC LIMIT 1;"
 	) or make_error(S_SQLFAIL);
 	$sth->execute() or make_error(S_SQLFAIL);
 
@@ -2477,7 +2491,7 @@ sub make_admin_post_panel {
 	my $o_date = $$row[1];
 
 	$sth = $dbh->prepare(
-		"SELECT num, timestamp FROM " . SQL_TABLE . " ORDER BY num DESC LIMIT 1;"
+		"SELECT num,timestamp FROM " . SQL_TABLE . " ORDER BY num DESC LIMIT 1;"
 	) or make_error(S_SQLFAIL);
 	$sth->execute() or make_error(S_SQLFAIL);
 
@@ -2731,7 +2745,7 @@ sub make_admin_log {
 	my ($admin, $filter, $show) = @_;
 	my ($sth, $row, @log, $reflink);
 
-	make_error(S_NOPRIV) unless (check_session($admin))[0] == 1;
+	my ($stafftype) = check_session($admin);
 
 	my $users = get_staff_hashref();
 
@@ -2758,7 +2772,7 @@ sub make_admin_log {
 	$filter = $filter ? 0 : 1;
 
 	make_http_header();
-	print encode_string(LOG_PANEL_TEMPLATE->(admin => 1, filter => $filter, show => $show, log => \@log));
+	print encode_string(LOG_PANEL_TEMPLATE->(admin => $stafftype, filter => $filter, show => $show, log => \@log));
 }
 
 sub make_admin_users {
