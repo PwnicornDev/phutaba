@@ -2284,8 +2284,12 @@ sub delete_post {
           if ( $password and $$row{password} ne $password );
         make_error(S_BADDELIP)
           if ( $deletebyip and ( $numip and $$row{ip} ne $numip ) );
+		# corner case: a system trim action could be prevented by wrong settings
 		make_error(S_RENZOKU4)
 		  if ( $$row{timestamp} + RENZOKU4 >= time() and !$admin );
+
+		# logging
+		my $posttype = $$row{parent} == 0 ? "thread" : "post";
 
 		if ($admin) {
 			# do not log deletion of own posts (by ip)
@@ -2297,25 +2301,30 @@ sub delete_post {
 				if ($fileonly) {
 					add_log_entry("Delete files", $staffid, $post);
 				} else {
-					add_log_entry("Delete post", $staffid, $post, $$row{comment}, $$row{ip});
+					add_log_entry("Delete " . $posttype, $staffid, $post, $$row{comment}, $$row{ip});
 				}
 			} else {
-				# staff deletion of own posts
+				# debug logging: staff deletion of own posts
 				if ($fileonly) {
-					add_log_entry("User delete files", $staffid, $post);
+					add_log_entry("Delete own files", $staffid, $post);
 				} else {
-					add_log_entry("User delete post", $staffid, $post, $$row{comment});
+					add_log_entry("Delete own " . $posttype, $staffid, $post, $$row{comment});
 				}
 			}
 		} else {
-			# user deletion of own posts
+			# debug logging: user deletion of own posts
 			if ($fileonly) {
-				add_log_entry("User delete files", undef, $post);
+				add_log_entry("Delete own files", undef, $post);
 			} else {
-				add_log_entry("User delete post", undef, $post, $$row{comment}, $$row{ip});
+				if (!$password and !$deletebyip) {
+					add_log_entry("System trim " . $posttype, undef, $post, $$row{comment}, $$row{ip});
+				} else {
+					add_log_entry("Delete own " . $posttype, undef, $post, $$row{comment}, $$row{ip});
+				}
 			}
 		}
 
+		# deletion
         unless ($fileonly) {
 
             # remove files from comment and possible replies

@@ -143,10 +143,10 @@ use constant MANAGER_HEAD_INCLUDE => NORMAL_HEAD_INCLUDE . q{
 	<!--[<a href="<var expand_filename(HTML_SELF)>"><const S_MANARET></a>]-->
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=show"><const S_MANAPANEL></a>]
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=bans"><const S_MANABANS></a>]
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=log"><const S_MANALOG></a>]
 	<if $admin eq 1>
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=mpanel"><const S_MANATOOLS></a>]
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=orphans"><const S_MANAORPH></a>]
-	[<a href="<var $self>?board=<var get_board_id()>&amp;task=log"><const S_MANALOG></a>]
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=staff"><const S_MANASTAFF></a>]
 	</if>
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=changepass"><const S_MANAPASS></a>]
