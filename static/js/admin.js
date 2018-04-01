@@ -1,3 +1,18 @@
+function highlight_all(ip) {
+	$j( "div.post > div > span[onclick], div.post > header > span[onclick]" ).each(function() {
+		if (ip == $j(this).text()) {
+			// highlight posts
+			$j(this).parent().parent().css({
+				"background-color": "#fffbcc",
+				"border": "2px solid #d6c500"
+			});
+		} else {
+			// remove custom css
+			$j(this).parent().parent().removeAttr("style");
+		}
+	});
+}
+
 function do_ban(ip, postid, board) {
 
 	function show_info(msg) {

@@ -65,7 +65,7 @@ use constant POST_VIEW_INCLUDE => q{
 		<div class="hidden" id="postinfo_<var $num>">
 			<var get_post_info($location, get_board_id())>
 		</div>
-		<span onmouseover="TagToTip('postinfo_<var $num>', TITLE, '<const S_POSTINFO>', DELAY, 0, CLICKSTICKY, true)" onmouseout="UnTip()">[<var dec_to_dot($ip)>]</span>
+		<span onmouseover="TagToTip('postinfo_<var $num>', TITLE, '<const S_POSTINFO>', DELAY, 0, CLICKSTICKY, true)" onmouseout="UnTip()" onclick="highlight_all(this.innerHTML)">[<var dec_to_dot($ip)>]</span>
 		</if>
 		<if $staffname>[<var $staffname>]</if>
 		<if !$parent>	
