@@ -148,11 +148,11 @@ use constant S_MANASHOW   => 'Open';
 use constant S_MPARCHIVE  => 'Archive';
 
 # admin log
-use constant S_LOGTABLE => '<th>Date</th><th>Event</th><th>User</th><th>Link</th><th>IP</th>';
+use constant S_LOGTABLE => '<th>Date</th><th>Event</th><th>User</th><th>Link</th><th>IP</th><th>Comment (fraction)</th>';
 use constant S_LOGFILTERON => 'Show the last 100 events';
 use constant S_LOGFILTEROFF => 'Show all events';
-use constant S_LOGCOMMENTSSHOW => 'Show comments';
-use constant S_LOGCOMMENTSHIDE => 'Hide comments';
+use constant S_LOGCOMMENTSSHOW => 'Show full comments';
+use constant S_LOGCOMMENTSHIDE => 'Hide full comments';
 
 # admin staff accounts
 use constant S_ACCOUNTTABLE => '<th>Type</th><th>Name</th><th>Status</th><th>Password</th><th>Last Activity</th><th>Action</th>';

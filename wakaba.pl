@@ -510,7 +510,7 @@ sub show_post {
     my ($id, $admin) = @_;
     my ($sth, $row, @thread);
 
-	my ($isAdmin, $staffid) = check_session($admin, 1);
+	my ($isAdmin) = check_session($admin, 1);
 
     $sth = $dbh->prepare(
             "SELECT * FROM "
@@ -551,7 +551,7 @@ sub show_catalog {
     my ($admin) = @_;
     my ($sth, $row, @replycount, @filecount);
 
-	my ($isAdmin, $staffid) = check_session($admin, 1);
+	my ($isAdmin) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -650,7 +650,7 @@ sub show_page {
     my ($sth, $row, $sth2, $row2, @thread);
 
 	# $isAdmin ($stafftype): 0 = normal user; 1 or 2 = staff
-	my ($isAdmin, $staffid) = check_session($admin, 1);
+	my ($isAdmin) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -844,7 +844,7 @@ sub show_thread {
 #    my ( $filename, $tmpname );
 
 	# $isAdmin ($stafftype): 0 = normal user; 1 or 2 = staff
-	my ($isAdmin, $staffid) = check_session($admin, 1);
+	my ($isAdmin, $staffid, $staffname) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -884,6 +884,7 @@ sub show_thread {
 				dummy        => $thread[$#thread]{num},
 				loc          => $loc,
 				threads      => [ { posts => \@thread } ],
+				staffname    => $staffname,
 				admin        => $isAdmin
             )
         );
@@ -972,13 +973,15 @@ sub resolve_reflinks($) {
 
 	$comment =~ s|<!--reflink-->&gt;&gt;([0-9]+)|
 		my $res = get_post($1);
-		if ($res) { '<span class="backreflink"><a href="'.get_reply_link($$res{num},$$res{parent}).'">&gt;&gt;'.$1.'</a></span>' }
+		if ($res) { '<span class="backreflink"><a href="'
+			. get_reply_link($$res{num},$$res{parent}) . '">&gt;&gt;'.$1.'</a></span>' }
 		else { '<span class="backreflink"><del>&gt;&gt;'.$1.'</del></span>'; }
 	|ge;
 
 	$comment =~ s|<!--reflink-->&gt;&gt;/([\wäöü]+)/([0-9]+)|
 		my $res = get_board_post($1,$2);
-		if ($res) { '<span class="boardreflink"><a href="'.get_reply_link($$res{num},$$res{parent},$1).'">&gt;&gt;/'.$1.'/'.$2.'</a></span>' }
+		if ($res) { '<span class="boardreflink"><a href="'
+			. get_reply_link($$res{num},$$res{parent},$1) . '">&gt;&gt;/'.$1.'/'.$2.'</a></span>' }
 		else { '<span class="backreflink"><del>&gt;&gt;/'.$1.'/'.$2.'</del></span>'; }
 	|e for 1 .. 10;
 
@@ -1073,18 +1076,21 @@ sub find_posts($$$$) {
 	if (length($lfind) >= 3) {
 		# grab all posts, in thread order (ugh, ugly kludge)
 		$sth = $dbh->prepare(
-			"SELECT * FROM " . SQL_TABLE . " ORDER BY sticky DESC,lasthit DESC,CASE parent WHEN 0 THEN num ELSE parent END ASC,num ASC"
+			"SELECT * FROM " . SQL_TABLE
+			  . " ORDER BY sticky DESC,lasthit DESC,CASE parent WHEN 0 THEN num ELSE parent END ASC,num ASC"
 		) or make_error(S_SQLFAIL);
 		$sth->execute() or make_error(S_SQLFAIL);
 
-		while (($row = get_decoded_hashref($sth)) and ($count < MAX_SEARCH_RESULTS) and ($threads <= MAX_SHOWN_THREADS)) {
+		while (($row = get_decoded_hashref($sth)) and ($count < MAX_SEARCH_RESULTS)
+		  and ($threads <= MAX_SHOWN_THREADS)) {
 			$threads++ if !$$row{parent};
 			$search = $$row{comment};
 			$search =~ s/<.+?>//mg; # must not search inside html-tags. remove them.
 			$search = lc($search);
 			$subject = lc($$row{subject});
 
-			if (($in_comment and (index($search, $lfind) > -1)) or ($in_subject and (index($subject, $lfind) > -1))) {
+			if (($in_comment and (index($search, $lfind) > -1)) or
+			  ($in_subject and (index($subject, $lfind) > -1))) {
 
 # highlight found words - this can break HTML tags
 # TODO: select or define CSS style
@@ -1596,7 +1602,8 @@ sub ban_check {
     make_ban(S_BADHOST, @bans) if (@bans);
 
 # fucking mysql...
-#	$sth=$dbh->prepare("SELECT count(*) FROM ".SQL_ADMIN_TABLE." WHERE type='wordban' AND ? LIKE '%' || sval1 || '%';") or make_error(S_SQLFAIL);
+#	$sth=$dbh->prepare("SELECT count(*) FROM ".SQL_ADMIN_TABLE
+#	  ." WHERE type='wordban' AND ? LIKE '%' || sval1 || '%';") or make_error(S_SQLFAIL);
 #	$sth->execute($comment) or make_error(S_SQLFAIL);
 #
 #	make_error(S_STRREF) if(($sth->fetchrow_array())[0]);
@@ -2148,7 +2155,8 @@ sub process_file {
     #	}
 
 	my ($info, $info_all) = get_meta_markup($filename, CHARSET, TOOLTIP_TAGS);
-    return ($filename, $md5, $width, $height, $thumbnail, $tn_width, $tn_height, $info, $info_all, $uploadname);
+	return ($filename, $md5, $width, $height, $thumbnail, $tn_width, $tn_height,
+		$info, $info_all, $uploadname);
 }
 
 #
@@ -2159,7 +2167,7 @@ sub delete_stuff {
     my ( $password, $fileonly, $admin, $parent, @posts ) = @_;
     my ($post);
     my $deletebyip = 0;
-	my $noko = 1; # try to stay in thread after deletion by default	
+	my $noko = 1; # try to stay in thread after deletion by default
 
 	my ($stafftype, $staffid) = check_session($admin, 1);
 
@@ -2180,7 +2188,7 @@ sub delete_stuff {
 
     foreach $post (@posts) {
         delete_post( $post, $password, $fileonly, $deletebyip, $admin, $staffid );
-		$noko = 0 if ( $parent and $post eq $parent ); # the thread is deleted and cannot be redirected to		
+		$noko = 0 if ( $parent and $post eq $parent ); # thread deleted and cannot be redirected to
     }
 
     if ($admin) {
@@ -2453,7 +2461,8 @@ sub make_admin_login {
 sub make_admin_post_panel {
     my ($admin) = @_;
 
-	make_error(S_NOPRIV) unless (check_session($admin, 0, 1))[0] == 1;
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
+	make_error(S_NOPRIV) unless ($stafftype == 1);
 
 	# geoip
 	my $api = 'n/a';
@@ -2511,7 +2520,8 @@ sub make_admin_post_panel {
     make_http_header();
     print encode_string(
         POST_PANEL_TEMPLATE->(
-            admin    => 1,
+            admin    => $stafftype,
+			staffname => $staffname,
             posts    => $posts,
             threads  => $threads,
             files    => $files,
@@ -2525,6 +2535,7 @@ sub make_admin_post_panel {
         )
     );
 }
+
 sub get_staff_hashref {
     my ($sth, $row, %users);
 
@@ -2543,7 +2554,7 @@ sub make_admin_ban_panel {
     my ($admin, $filter) = @_;
     my ( $sth, $row, @bans, $prevtype );
 
-    my ($stafftype, $staffid) = check_session($admin);
+    my ($stafftype, $staffid, $staffname) = check_session($admin);
 
 	my $users = get_staff_hashref();
 
@@ -2585,14 +2596,18 @@ sub make_admin_ban_panel {
 
     make_http_header();
     print encode_string(
-        BAN_PANEL_TEMPLATE->( admin => $stafftype, filter => $filter, bans => \@bans ) );
+        BAN_PANEL_TEMPLATE->(
+			admin => $stafftype, staffname => $staffname, filter => $filter, bans => \@bans
+		)
+	);
 }
 
 sub make_admin_orphans {
     my ($admin) = @_;
 	my ($sth, $row, @results, @dbfiles, @dbthumbs);
 
-	make_error(S_NOPRIV) unless (check_session($admin, 0, 1))[0] == 1;
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
+	make_error(S_NOPRIV) unless ($stafftype == 1);
 
 	# gather all files/thumbs on disk
 	my @files = glob BOARD_IDENT . '/' . IMG_DIR . '*';
@@ -2657,7 +2672,8 @@ sub make_admin_orphans {
 
 	make_http_header();
 	print encode_string(ADMIN_ORPHANS_TEMPLATE->(
-		admin       => 1,
+		admin       => $stafftype,
+		staffname   => $staffname,
 		files       => \@f_orph,
 		thumbs      => \@t_orph,
 		file_count  => $file_count,
@@ -2688,7 +2704,7 @@ sub make_admin_edit_panel {
 	my ($admin, $postid) = @_;
 	my $row;
 
-	my ($stafftype, $staffid) = check_session($admin);
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
 
 	make_error(S_UNUSUAL) if ($postid =~ /[^0-9]/);
 
@@ -2710,6 +2726,7 @@ sub make_admin_edit_panel {
 		make_http_header();
 		print encode_string(ADMIN_EDIT_TEMPLATE->(
 			admin   => $stafftype,
+			staffname => $staffname,
 			postid  => $postid,
 			name    => $$row{name},
 			subject => $$row{subject},
@@ -2754,7 +2771,7 @@ sub make_admin_log {
 	my ($admin, $filter, $show) = @_;
 	my ($sth, $row, @log, $reflink);
 
-	my ($stafftype) = check_session($admin);
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
 
 	my $users = get_staff_hashref();
 
@@ -2770,7 +2787,22 @@ sub make_admin_log {
 			$reflink = '<!--reflink-->&gt;&gt;/' . $$row{board} . '/' . $$row{post};
 			$$row{reflink} = resolve_reflinks($reflink);
 		}
-		$$row{posttext} = resolve_reflinks($$row{comment}) if ($show);
+
+		# comment preview
+		if ($$row{comment}) {
+			my $preview = substr($$row{comment}, 0, 80);
+			$preview =~ s/</&lt;/g;
+			$preview =~ s/>/&gt;/g;
+			#$preview .= " ..." if length($$row{comment}) > 80;
+			$$row{preview} = $preview;
+		}
+
+		if ($show) {
+			$$row{posttext} = resolve_reflinks($$row{comment});
+			# do not show redundant information
+			$$row{posttext} = undef if ($$row{posttext} eq $$row{preview});
+		}
+
 		$$row{user} = $$users{$$row{staff}};
 		$$row{rowtype} = @log%2+1;
 		push @log, $row;
@@ -2781,14 +2813,16 @@ sub make_admin_log {
 	$filter = $filter ? 0 : 1;
 
 	make_http_header();
-	print encode_string(LOG_PANEL_TEMPLATE->(admin => $stafftype, filter => $filter, show => $show, log => \@log));
+	print encode_string(LOG_PANEL_TEMPLATE->(
+		admin => $stafftype, staffname => $staffname, filter => $filter, show => $show, log => \@log
+	));
 }
 
 sub make_admin_users {
 	my ($admin) = @_;
 	my ($sth, $row, @users, $prevtype);
 
-	my ($stafftype, $staffid) = check_session($admin);
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
 	make_error(S_NOPRIV) unless ($stafftype == 1);
 
 	$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " ORDER BY type,user ASC;") or make_error(S_SQLFAIL);
@@ -2801,7 +2835,9 @@ sub make_admin_users {
 	}
 
 	make_http_header();
-	print encode_string(STAFF_PANEL_TEMPLATE->(admin => 1, current => $staffid, users => \@users));
+	print encode_string(STAFF_PANEL_TEMPLATE->(
+		admin => 1, staffname => $staffname, current => $staffid, users => \@users
+	));
 }
 
 sub do_login {
@@ -2816,7 +2852,8 @@ sub do_login {
 		$user = clean_string(decode_string($user, CHARSET));
 		$password = crypt_password($password);
 
-		$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " WHERE user=?;") or make_error(S_SQLFAIL);
+		$sth=$dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " WHERE user=?;")
+		  or make_error(S_SQLFAIL);
 		$sth->execute($user) or make_error(S_SQLFAIL);
 
 		if ( $row = $sth->fetchrow_hashref()) {
@@ -2825,11 +2862,13 @@ sub do_login {
 
 				$session = make_random_string(30);
 				# check for collision - should never happen
-				$sth = $dbh->prepare("SELECT 1 FROM " . SQL_STAFF_TABLE . " WHERE session=?;") or make_error(S_SQLFAIL);
+				$sth = $dbh->prepare("SELECT 1 FROM " . SQL_STAFF_TABLE . " WHERE session=?;")
+				  or make_error(S_SQLFAIL);
 				$sth->execute($session) or make_error(S_SQLFAIL);
 				make_error("Session error. Please reload the page.") if (($sth->fetchrow_array())[0]);
 
-				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET session=?, ip=?, timestamp=? WHERE num=?;") or make_error(S_SQLFAIL);
+				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE
+					. " SET session=?, ip=?, timestamp=? WHERE num=?;") or make_error(S_SQLFAIL);
 				$sth->execute($session, $numip, time(), $$row{num}) or make_error(S_SQLFAIL);
 			} else { make_error(S_WRONGPASS) }
 		} else { make_error(S_WRONGPASS) }
@@ -2844,7 +2883,8 @@ sub do_login {
 	if ($session) {
 
 	# TODO: clear old sessions
-	# $sth=$dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET session=null, ip=null WHERE timestamp<?;") or make_error(S_SQLFAIL);
+	# $sth=$dbh->prepare("UPDATE " . SQL_STAFF_TABLE
+	#   . " SET session=null, ip=null WHERE timestamp<?;") or make_error(S_SQLFAIL);
 	# $sth->execute(time() - 7 * 24 * 60 * 60) or make_error(S_SQLFAIL);
 
 		my $expires = 0;
@@ -2959,7 +2999,7 @@ sub check_admin_entry {
     my ($admin, $ival1) = @_;
     my ($sth, $utf8_encoded_json_text, $results, $info_msg);
 
-	my ($authorized, $staffid) = check_session($admin, 1);
+	my ($authorized) = check_session($admin, 1);
 
 	if (!$authorized) {
 		$utf8_encoded_json_text = encode_json({"error_code" => 401, "error_msg" => 'Unauthorized'});
@@ -3017,10 +3057,12 @@ sub add_user {
 	if ($user and $password1) {
 		make_error(S_PWCHANGEERR1) unless ($password1 eq $password2);
 		$password1 = crypt_password($password1);
-		$sth = $dbh->prepare("SELECT count(*) FROM " . SQL_STAFF_TABLE . " WHERE user=?;") or make_error(S_SQLFAIL);
+		$sth = $dbh->prepare("SELECT count(*) FROM " . SQL_STAFF_TABLE . " WHERE user=?;")
+		  or make_error(S_SQLFAIL);
 		$sth->execute($user) or make_error(S_SQLFAIL);
 		make_error(S_ACCOUNTEXISTS) if (($sth->fetchrow_array())[0]);
-		$sth = $dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,?,?,1,?,null,null,null,null);") or make_error(S_SQLFAIL);
+		$sth = $dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE
+			. " VALUES(null,?,?,1,?,null,null,null,null);") or make_error(S_SQLFAIL);
 		$sth->execute($user, $password1, $type) or make_error(S_SQLFAIL);
 	}
 
@@ -3035,7 +3077,8 @@ sub remove_user {
 	make_error(S_NOPRIV) unless ($stafftype == 1);
 	make_error(S_NOPRIV) unless ($staffid != $num);
 
-	$sth = $dbh->prepare("DELETE FROM " . SQL_STAFF_TABLE . " WHERE num=? AND user<>'admin';") or make_error(S_SQLFAIL);
+	$sth = $dbh->prepare("DELETE FROM " . SQL_STAFF_TABLE . " WHERE num=? AND user<>'admin';")
+	  or make_error(S_SQLFAIL);
 	$sth->execute($num) or make_error(S_SQLFAIL);
 
 	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
@@ -3049,7 +3092,8 @@ sub change_user {
 	make_error(S_NOPRIV) unless ($stafftype == 1);
 	make_error(S_NOPRIV) unless ($staffid != $num);
 
-	$sth = $dbh->prepare("UPDATE " .  SQL_STAFF_TABLE . " SET enabled=? WHERE num=?;") or make_error(S_SQLFAIL);
+	$sth = $dbh->prepare("UPDATE " .  SQL_STAFF_TABLE . " SET enabled=? WHERE num=?;")
+	  or make_error(S_SQLFAIL);
 	$sth->execute($enable, $num) or make_error(S_SQLFAIL);
 
 	make_http_forward(get_script_name() . "?task=staff&board=" . get_board_id());
@@ -3059,7 +3103,7 @@ sub change_user_password {
 	my ($admin, $num, $oldpw, $newpw1, $newpw2) = @_;
 	my ($sth, $msg, $row, $user, $pass, $pwreset);
 
-	my ($stafftype, $staffid) = check_session($admin);
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
 	$num = $staffid unless ($num);
 
 	# users can change their own password. admins can change any password.
@@ -3067,7 +3111,8 @@ sub change_user_password {
 
 	$pwreset = ($staffid != $num);
 
-	$sth = $dbh->prepare("SELECT user,password FROM " . SQL_STAFF_TABLE . " WHERE num=?;") or make_error(S_SQLFAIL);
+	$sth = $dbh->prepare("SELECT user,password FROM " . SQL_STAFF_TABLE . " WHERE num=?;")
+	  or make_error(S_SQLFAIL);
 	$sth->execute($num) or make_error(S_SQLFAIL);
 	$row = get_decoded_hashref($sth);
 	$user = $$row{user};
@@ -3084,7 +3129,8 @@ sub change_user_password {
 				$msg = S_PWCHANGEERR2 . " " . S_PWCHANGEFAIL;
 			} else {
 				$newpw1 = crypt_password($newpw1);
-				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET password=? WHERE num=?;") or make_error(S_SQLFAIL);
+				$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET password=? WHERE num=?;")
+				  or make_error(S_SQLFAIL);
 				$sth->execute($newpw1,$num) or make_error(S_SQLFAIL);
 				$msg = sprintf(S_PWCHANGEOK, $user);
 			}
@@ -3094,6 +3140,7 @@ sub change_user_password {
 	make_http_header();
 	print encode_string(CHANGE_PASSWORD_TEMPLATE->(
 		admin => $stafftype,
+		staffname => $staffname,
 		msg => $msg,
 		num => $num,
 		user => $user,
@@ -3105,7 +3152,7 @@ sub delete_all {
     my ($admin, $ip, $mask, $go) = @_;
     my ($sth, $row, @posts);
 
-    check_password( $admin, ADMIN_PASS );
+	my ($stafftype, $staffid, $staffname) = check_session($admin);
 
 	unless ($go and $ip) # do not allow empty IP (would delete anonymized (staff) posts)
 	{
@@ -3125,7 +3172,8 @@ sub delete_all {
 
 		make_http_header();
 		print encode_string(DELETE_PANEL_TEMPLATE->(
-			admin   => 1,
+			admin   => $stafftype,
+			staffname => $staffname,
 			ip      => $ip,
 			mask    => $mask,
 			posts   => $pcount,
@@ -3150,7 +3198,8 @@ sub get_boards {
 	foreach my $item (@files) {
 		# check for directories and if they contain a config.pl
 		if (-d $item and -f $item . "/config.pl") {
-			$boards .= ' /<a href="' . get_script_name() . '?board=' . urlenc($item) . '">' . decode_string($item, CHARSET) . '</a>/ ';
+			$boards .= ' /<a href="' . get_script_name() . '?board=' . urlenc($item) . '">'
+			  . decode_string($item, CHARSET) . '</a>/ ';
 		}
 	}
 	return $boards;
@@ -3173,20 +3222,22 @@ sub check_session {
 	$session = clean_string($session);
 
 	if ($session) {
-		$sth = $dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " WHERE session=?;") or make_error(S_SQLFAIL);
+		$sth = $dbh->prepare("SELECT * FROM " . SQL_STAFF_TABLE . " WHERE session=?;")
+		  or make_error(S_SQLFAIL);
 		$sth->execute($session) or make_error(S_SQLFAIL);
 
 		if ($row = $sth->fetchrow_hashref()) {
 			if ($$row{enabled} and $$row{session} eq $session and $$row{ip} eq $numip) {
 				# update session activity once every hour
 				if ($$row{timestamp} + 60 * 60 < time()) {
-					$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET timestamp=? WHERE num=?;") or make_error(S_SQLFAIL);
+					$sth = $dbh->prepare("UPDATE " . SQL_STAFF_TABLE . " SET timestamp=? WHERE num=?;")
+					  or make_error(S_SQLFAIL);
 					$sth->execute(time(), $$row{num}) or make_error(S_SQLFAIL);
 				}
 				# check privilege level
 				#make_error(S_NOPRIV) if ($level and $level > $$row{type});
 				# return staff id num as second parameter
-				return ($$row{type}, $$row{num});
+				return ($$row{type}, $$row{num}, $$row{user});
 			}
 		}
 	}
@@ -3344,7 +3395,8 @@ sub get_filetypes_table {
 	my @groups = split(' ', GROUPORDER);
 	my @rows;
 	my $blocks = 0;
-	my $output = '<table style="margin:0px;border-collapse:collapse;display:inline-table;">' . "\n<tr>\n\t" . '<td colspan="4">'
+	my $output = '<table style="margin:0px;border-collapse:collapse;display:inline-table;">'
+		. "\n<tr>\n\t" . '<td colspan="4">'
 		. sprintf(S_ALLOWED, get_displaysize(MAX_KB*1024, DECIMAL_MARK, 0)) . "</td>\n</tr><tr>\n";
 	delete $filetypes{'jpeg'}; # show only jpg
 
@@ -3425,11 +3477,14 @@ sub init_database {
 		"CREATE TABLE " . SQL_TABLE . " (" .
 
 		"num " . get_sql_autoincrement() . "," . # Post number, auto-increments
-		"parent INTEGER," .     # Parent post for replies in threads. For original posts, must be set to 0 (and not null)
+		"parent INTEGER," .     # Parent post for replies in threads. For original posts, must be
+		                        # set to 0 (and not null)
 		"timestamp INTEGER," .  # Timestamp in seconds for when the post was created
-		"lasthit INTEGER," .    # Last activity in thread. Must be set to the same value for BOTH the original post and all replies!
+		"lasthit INTEGER," .    # Last activity in the thread. Must be set to the same value for
+		                        # BOTH the original post and all replies!
 
-		"ip TEXT," .            # IP number of poster, in integer form! Stored as text because IPv6 128 bit integers are not always supported.
+		"ip TEXT," .            # IP number of poster, in integer form! Stored as text because IPv6
+		                        # 128 bit integers are not always supported.
 		"name TEXT," .          # Name of the poster
 		"trip TEXT," .          # Tripcode (encoded)
 		"email TEXT," .         # Email address
@@ -3548,7 +3603,8 @@ sub init_staff_database() {
 	$sth->execute() or make_error(S_SQLFAIL);
 
 	# add initial admin entry. password is from site_config.
-	$sth=$dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,'admin',?,1,1,null,null,null,null);") or make_error(S_SQLFAIL);
+	$sth = $dbh->prepare("INSERT INTO " . SQL_STAFF_TABLE . " VALUES(null,'admin',?,1,1,null,null,null,null);")
+	  or make_error(S_SQLFAIL);
 	$sth->execute(crypt_password(ADMIN_PASS)) or make_error(S_SQLFAIL);
 }
 
@@ -3817,78 +3873,6 @@ sub update_db_schema2 {  # mysql-specific. will be removed after migration is do
 			}
 		}
 	}
-}
-
-sub update_db_schema {  # mysql-specific. will be removed after migration is done.
-
-# try to select a field that only exists if migration was already done
-# exit if no error occurs
-	my $done = 0;
-
-    $sth = $dbh->prepare("SELECT banned FROM " . SQL_TABLE . " LIMIT 1;");
-	if ($sth->execute()) {
-		$sth->finish;
-		$done = 1;
-	}
-
-	return if ($done);
-
-# remove primary key constraint from image table, remove unneeded column, add new columns
-   $sth = $dbh->prepare(
-		"ALTER TABLE " . SQL_TABLE_IMG . " DROP PRIMARY KEY, DROP displaysize,
-		ADD thread INT NULL AFTER timestamp, ADD post INT NULL AFTER thread,
-		ADD info TEXT NULL, ADD info_all TEXT NULL, ADD temp_sort INT NULL;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-# link images 1-3 to posts and threads
-   $sth = $dbh->prepare(
-		"UPDATE " . SQL_TABLE_IMG . " JOIN " . SQL_TABLE . " ON imageid_1=" . SQL_TABLE_IMG . ".timestamp
-		SET thread=parent, post=num, temp_sort=1;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-   $sth = $dbh->prepare(
-		"UPDATE " . SQL_TABLE_IMG . " JOIN " . SQL_TABLE . " ON imageid_2=" . SQL_TABLE_IMG . ".timestamp
-		SET thread=parent, post=num, temp_sort=2;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-   $sth = $dbh->prepare(
-		"UPDATE " . SQL_TABLE_IMG . " JOIN " . SQL_TABLE . " ON imageid_3=" . SQL_TABLE_IMG . ".timestamp
-		SET thread=parent, post=num, temp_sort=3;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-# copy image 0 from comment table to image table
-   $sth = $dbh->prepare(
-		"INSERT " . SQL_TABLE_IMG . " (timestamp, thread, post, image, size, md5, width, height,
-		thumbnail, tn_width, tn_height, uploadname, temp_sort)
-		SELECT 1, parent, num, image, size, md5, width, height, thumbnail, tn_width, tn_height, uploadname, 0
-		FROM " . SQL_TABLE . " WHERE image IS NOT NULL;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-# replace thread=0 with post-id for OP images
-   $sth = $dbh->prepare(
-		"UPDATE " . SQL_TABLE_IMG . " SET thread=post WHERE thread=0;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-# add new primary key to image table, order records to make sure images stay in the right order, remove unneeded columns
-   $sth = $dbh->prepare(
-		"ALTER TABLE " . SQL_TABLE_IMG . " ADD num INT PRIMARY KEY AUTO_INCREMENT FIRST,
-		DROP timestamp, DROP temp_sort, ORDER BY temp_sort ASC;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
-
-# remove unneeded columns from comments table, rename column, add banned column
-   $sth = $dbh->prepare(
-		"ALTER TABLE " . SQL_TABLE . " DROP image, DROP size, DROP md5, DROP width, DROP height, DROP thumbnail,
-		DROP tn_width, DROP tn_height, DROP uploadname, DROP displaysize, DROP imageid_1, DROP imageid_2, DROP imageid_3,
-		CHANGE `ssl` secure TEXT, ADD banned INT AFTER comment;"
-   ) or make_error($dbh->errstr);
-   $sth->execute() or make_error($dbh->errstr);
 }
 
 sub update_files_meta {

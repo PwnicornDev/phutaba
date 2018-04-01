@@ -150,7 +150,7 @@ use constant MANAGER_HEAD_INCLUDE => NORMAL_HEAD_INCLUDE . q{
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=staff"><const S_MANASTAFF></a>]
 	</if>
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=changepass"><const S_MANAPASS></a>]
-	[<a href="<var $self>?board=<var get_board_id()>&amp;task=logout"><const S_MANALOGOUT></a>]
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=logout"><const S_MANALOGOUT><if $staffname> - <var $staffname></if></a>]
 	[<var get_boards()>]
 	<div class="passvalid"><const S_MANAMODE></div>
 </if>
@@ -869,8 +869,9 @@ use constant LOG_PANEL_TEMPLATE => compile_template(
 		<td><var $user></td>
 		<td><var $reflink></td>
 		<td><if $ip><var dec_to_dot($ip)></if><if !$ip>-</if></td>
+		<td><var $preview></td>
 	</tr>
-	<if $posttext><tr class="row<var $rowtype>"><td colspan="5"><var $posttext></td></tr></if>
+	<if $posttext><tr class="row<var $rowtype>"><td colspan="6"><var $posttext></td></tr></if>
 </loop>
 
 </tbody></table><br />
