@@ -653,7 +653,13 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <tr><td class="postblock"><const S_BANIPLABEL></td><td><input type="text" name="ip" size="24" /></td></tr>
 <tr><td class="postblock"><const S_BANMASKLABEL></td><td>} . NETMASK_SELECT_INCLUDE . q{</td></tr>
 <tr><td class="postblock"><const S_BANDURATION></td><td>} . DURATION_SELECT_INCLUDE . q{</td></tr>
-<tr><td class="postblock"><const S_BANREASONLABEL></td><td><input type="text" name="comment" size="24" />
+<if $admin eq 1>
+	<tr><td class="postblock"><const S_BOARD></td><td>
+		<label><input id="global1" name="global" value="0" checked="checked" type="radio" />/<const BOARD_IDENT>/</label>
+		<label><input id="global2" name="global" value="1" type="radio" /><const S_BANGLOBAL></label>
+	</td></tr>
+</if>
+<tr><td class="postblock"><const S_BANREASONLABEL></td><td><input type="text" name="comment" size="24" /></td></tr>
 <tr><td class="postblock"><const S_BANINTERNALCOMMENTLABEL></td><td><input type="text" name="icomment" size="16" />
 <input type="submit" value="<const S_BANIP>" /></td></tr>
 </tbody></table></form>
@@ -936,7 +942,7 @@ use constant STAFF_PANEL_TEMPLATE => compile_template(
 
 		<td><a href="<var $self>?task=changepass&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTPASS></a></td>
 
-        <td><if $timestamp><var make_date($timestamp, 'date')></if></td>
+        <td><if $timestamp><var make_date($timestamp, 'date', S_WEEKDAYS, S_MONTHS)></if></td>
 
         <td>
 			<if $num ne $current && $user ne "admin">

@@ -859,17 +859,16 @@ sub show_thread {
     ) or make_error(S_SQLFAIL);
     $sth->execute( $thread, $thread ) or make_error(S_SQLFAIL);
 
-    while ( $row = get_decoded_hashref($sth) ) {
+	while ( $row = get_decoded_hashref($sth) ) {
 		$$row{comment} = resolve_reflinks($$row{comment});
 		$$row{staffname} = $$users{$$row{adminpost}} if ($isAdmin);
-        push( @thread, $row );
-    }
-    make_error(S_NOTHREADERR, 1) if ( !$thread[0] or $thread[0]{parent} );
+		push( @thread, $row );
+	}
+	make_error(S_NOTHREADERR, 1) if ( !$thread[0] or $thread[0]{parent} );
 
-	## determine the thread's board page
+	## determine if the thread is visible or not
 	my $visible = 0;
-    my $total_threads = count_threads();
-    my $total_pages = get_page_count($total_threads, $isAdmin);
+	my $total_pages = get_page_count(MAX_THREADS, $isAdmin);
 
 	$sth = $dbh->prepare(
 			"SELECT num FROM "
