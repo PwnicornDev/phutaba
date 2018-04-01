@@ -475,7 +475,7 @@ sub output_json_stats {
 	$sth->execute(clean_string(decode_string($date_format, CHARSET)));
 	$error = $sth->errstr;
 
-	@data = $sth->fetchall_arrayref;
+	@data = $sth->fetchall_arrayref();
 	if(@data ne undef) {
 		$code = 200;
 		$data{'stats'} = \@data;
@@ -556,7 +556,7 @@ sub show_catalog {
 	debug_exec_time('db/init') if ($isAdmin);
 
     my $total_threads = count_threads();
-	$total_threads = MAX_SHOWN_THREADS if ($total_threads > MAX_SHOWN_THREADS);
+    my $total_pages = get_page_count($total_threads); # removed $isAdmin
 
 # todos:
 # make a <hr> between pages?
@@ -575,7 +575,7 @@ sub show_catalog {
 			  . " WHERE parent=0 ORDER BY sticky DESC,lasthit DESC,num ASC"
 			  . " LIMIT ?" # why does 0,? not work?
 		) or make_error(S_SQLFAIL);
-		$sth->execute($total_threads) or make_error(S_SQLFAIL);
+		$sth->execute(IMAGES_PER_PAGE * $total_pages) or make_error(S_SQLFAIL);
 
 		while ($row = get_decoded_hashref($sth)) {
 			$$row{replycount} = 0;
@@ -593,7 +593,7 @@ sub show_catalog {
 
 		# get reply counts for threads
 		$sth = $dbh->prepare(
-			"SELECT parent, count(*) FROM "
+			"SELECT parent,count(*) FROM "
 			. SQL_TABLE
 			. " WHERE parent>0"
 			. " GROUP BY parent;"
@@ -604,7 +604,7 @@ sub show_catalog {
 
 		# get file counts for threads
 		$sth = $dbh->prepare(
-			"SELECT thread, count(*) FROM "
+			"SELECT thread,count(*) FROM "
 			. SQL_TABLE_IMG
 			. " WHERE image IS NOT NULL AND size>0"
 			. " GROUP BY thread;"
@@ -650,7 +650,7 @@ sub show_page {
     my ($sth, $row, $sth2, $row2, @thread);
 
 	# $isAdmin ($stafftype): 0 = normal user; 1 or 2 = staff
-	my ($isAdmin) = check_session($admin, 1);
+	my ($isAdmin, $staffid, $staffname) = check_session($admin, 1);
 
 	debug_exec_time('db/init') if ($isAdmin);
 
@@ -658,7 +658,7 @@ sub show_page {
     my $total_pages = get_page_count($total_threads, $isAdmin);
 
     if ($total_threads == 0) {            # no posts on the board
-        output_page(1, 1, $isAdmin, ());  # make an empty page 1
+        output_page(1, 1, $isAdmin, $staffname, ());  # make an empty page 1
     }
     else {
 		make_error(S_INVALID_PAGE, 1) if ($pageToShow > $total_pages or $pageToShow <= 0);
@@ -692,12 +692,12 @@ sub show_page {
 			push @threads, { posts => [@thread] };
 		}
 
-		output_page($pageToShow, $total_pages, $isAdmin, @threads);
+		output_page($pageToShow, $total_pages, $isAdmin, $staffname, @threads);
     }
 }
 
 sub output_page {
-    my ( $page, $total, $isAdmin, @threads) = @_;
+    my ( $page, $total, $isAdmin, $staffname, @threads) = @_;
     my ( $filename, $tmpname, $users );
 
 	$users = get_staff_hashref() if ($isAdmin);
@@ -803,6 +803,7 @@ sub output_page {
 				pages        => \@pages,
 				loc          => $loc,
 				threads      => \@threads,
+				staffname    => $staffname,
 				admin        => $isAdmin
             )
 		);
@@ -850,6 +851,7 @@ sub show_thread {
 
 	$users = get_staff_hashref() if ($isAdmin);
 
+	## get the actual thread
     $sth = $dbh->prepare(
             "SELECT * FROM "
           . SQL_TABLE
@@ -863,6 +865,28 @@ sub show_thread {
         push( @thread, $row );
     }
     make_error(S_NOTHREADERR, 1) if ( !$thread[0] or $thread[0]{parent} );
+
+	## determine the thread's board page
+	my $visible = 0;
+    my $total_threads = count_threads();
+    my $total_pages = get_page_count($total_threads, $isAdmin);
+
+	$sth = $dbh->prepare(
+			"SELECT num FROM "
+		  . SQL_TABLE
+		  . " WHERE parent=0 ORDER BY sticky DESC,lasthit DESC,num ASC"
+		  . " LIMIT ?"
+	) or make_error(S_SQLFAIL);
+	$sth->execute(IMAGES_PER_PAGE * $total_pages) or make_error(S_SQLFAIL);
+
+	while ($row = $sth->fetchrow_arrayref()) {
+		if ($$row[0] == $thread) {
+			$visible = 1;
+			last;
+		}
+	}
+	# the thread exists but is not on a visible page anymore
+    make_error(S_NOTHREADERR, 1) if (!$visible);
 
 	add_images_to_thread(@thread);
 

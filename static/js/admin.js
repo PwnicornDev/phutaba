@@ -4,7 +4,7 @@ function highlight_all(ip) {
 			// highlight posts
 			$j(this).parent().parent().css({
 				"background-color": "#fffbcc",
-				"border": "2px solid #d6c500"
+				"border": "1px solid #d6c500"
 			});
 		} else {
 			// remove custom css
