@@ -78,8 +78,8 @@ use constant NORMAL_HEAD_INCLUDE => q{
 <if $admin eq 1>
 <tr>
 	<td><b><const S_BOARD></b></td><td>
-		<label><input id="global1" name="global" value="0" checked="checked" type="radio" />/<const BOARD_IDENT>/</label>
-		<label><input id="global2" name="global" value="1" type="radio" /><const S_BANGLOBAL></label>
+		<label><input id="global1" name="global" value="0" type="radio" />/<const BOARD_IDENT>/</label>
+		<label><input id="global2" name="global" value="1" checked="checked" type="radio" /><const S_BANGLOBAL></label>
 	</td>
 </tr>
 </if>
@@ -655,8 +655,8 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <tr><td class="postblock"><const S_BANDURATION></td><td>} . DURATION_SELECT_INCLUDE . q{</td></tr>
 <if $admin eq 1>
 	<tr><td class="postblock"><const S_BOARD></td><td>
-		<label><input id="global1" name="global" value="0" checked="checked" type="radio" />/<const BOARD_IDENT>/</label>
-		<label><input id="global2" name="global" value="1" type="radio" /><const S_BANGLOBAL></label>
+		<label><input name="global" value="0" type="radio" />/<const BOARD_IDENT>/</label>
+		<label><input name="global" value="1" checked="checked" type="radio" /><const S_BANGLOBAL></label>
 	</td></tr>
 </if>
 <tr><td class="postblock"><const S_BANREASONLABEL></td><td><input type="text" name="comment" size="24" /></td></tr>
