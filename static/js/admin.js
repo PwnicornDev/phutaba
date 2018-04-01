@@ -1,3 +1,18 @@
+function highlight_all(ip) {
+	$j( "div.post > div > span[onclick], div.post > header > span[onclick]" ).each(function() {
+		if (ip == $j(this).text()) {
+			// highlight posts
+			$j(this).parent().parent().css({
+				"background-color": "#fffbcc",
+				"border": "1px solid #d6c500"
+			});
+		} else {
+			// remove custom css
+			$j(this).parent().parent().removeAttr("style");
+		}
+	});
+}
+
 function do_ban(ip, postid, board) {
 
 	function show_info(msg) {
@@ -22,8 +37,12 @@ function do_ban(ip, postid, board) {
 		$j("#ip").attr('disabled', true);
 		$j("#netmask").attr('disabled', true);
 		$j("#duration").attr('disabled', true);
+		if ($j('#global1').length) $j("#global1").attr('disabled', true);
+		if ($j('#global2').length) $j("#global2").attr('disabled', true);
 		$j("#reason").attr('disabled', true);
+		$j("#icomment").attr('disabled', true);
 		$j("#ban_flag").attr('disabled', true);
+		$j("#del_post").attr('disabled', true);
 	}
 
 	buttons = {
@@ -38,8 +57,22 @@ function do_ban(ip, postid, board) {
 			mask = $j("#netmask").val() ? $j("#netmask").val() : "255.255.255.255";
 			duration = $j("#duration").val() ? $j("#duration").val() : "";
 			reason = $j("#reason").val() ? $j("#reason").val() : "no reason";
+			icomment = $j("#icomment").val() ? $j("#icomment").val() : "";
 			flag = $j("#ban_flag").prop('checked') ? 1 : 0;
-			url = "/wakaba.pl?task=addip&ajax=1&type=ipban&board=" + encodeURIComponent(board) + "&post=" + postid + "&ip=" + ip + "&mask=" + mask + "&comment=" + encodeURIComponent(reason) + "&string=" + duration + "&flag=" + flag;
+			del_post = $j("#del_post").prop('checked') ? 1 : 0;
+			global = 0;
+			if ($j('#global2').length && $j('#global2').prop('checked')) global = 1;
+
+			url = "/wakaba.pl?task=addip&ajax=1&type=ipban&board="
+				+ encodeURIComponent(board)
+				+ "&post=" + postid
+				+ "&ip=" + ip + "&mask=" + mask
+				+ "&comment=" + encodeURIComponent(reason)
+				+ "&string=" + duration
+				+ "&flag=" + flag
+				+ "&delete=" + del_post
+				+ "&global=" + global
+				+ "&icomment=" + encodeURIComponent(icomment);
 
 			$j("#infobox").hide('normal');
 			$j("#error").hide('normal');
@@ -89,10 +122,11 @@ function do_ban(ip, postid, board) {
 
 	$j("#ip").val(ip);
 	$j("#reason").val("");
+	$j("#icomment").val("");
 	if (ip.indexOf(":") != -1) {
 		$j("#netmask").val("ffff:ffff:ffff:ffff:0000:0000:0000:0000");
 	} else {
-		$j("#netmask").val("255.255.0.0");
+		$j("#netmask").val("255.255.255.0");
 	}
 
 	disable_controls();
@@ -108,7 +142,11 @@ function do_ban(ip, postid, board) {
 				$j("#ip").attr('disabled', false);
 				$j("#netmask").attr('disabled', false);
 				$j("#duration").attr('disabled', false);
+				if ($j('#global1').length) $j("#global1").attr('disabled', false);
+				if ($j('#global2').length) $j("#global2").attr('disabled', false);
+				$j("#icomment").attr('disabled', false);
 				$j("#ban_flag").attr('disabled', false);
+				$j("#del_post").attr('disabled', false);
 				$j("#reason").attr('disabled', false).focus();
 				$j("#info").hide('normal');
 			} else if (data['results'] >= 1) {

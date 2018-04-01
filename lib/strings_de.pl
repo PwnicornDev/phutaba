@@ -109,6 +109,8 @@ use constant S_MONTHS => 'Januar Februar M&auml;rz April Mai Juni Juli August Se
 ## admin / management strings
 
 # admin login page
+use constant S_STAFFUSER => 'Benutzer';
+use constant S_STAFFPASS => 'Passwort';
 use constant S_ADMINPASS => 'Passwort:';    # Prints login prompt
 use constant S_MANASAVE  => 'Speichern';    # Defines Label for the login cookie checbox
 use constant S_MANALOGIN => 'Anmelden'
@@ -117,9 +119,12 @@ use constant S_MANALOGIN => 'Anmelden'
 # admin pages links / headings
 use constant S_MANAPANEL => 'Posts moderieren'
   ; # Defines Management Panel radio button--allows the user to view the management panel (overview of all posts)
-use constant S_MANATOOLS  => 'Werkzeuge';
 use constant S_MANABANS   => 'Sperren verwalten';         # Defines Bans Panel button
+use constant S_MANATOOLS  => 'Werkzeuge';
 use constant S_MANAORPH   => 'Verwaiste Dateien';
+use constant S_MANALOG    => 'Log anzeigen';
+use constant S_MANASTAFF  => 'Benutzer verwalten';
+use constant S_MANAPASS   => 'Passwort &auml;ndern';
 use constant S_MANALOGOUT => 'Abmelden';          #
 
 use constant S_MANAMODE => 'Administration';   # Prints heading on top of Manager page
@@ -141,6 +146,36 @@ use constant S_POSTSTATS => '[ &Auml;ltester Post: %s (Nr. %d), neuester Post: %
 use constant S_ORPHTABLE  => '<th>&Ouml;ffnen</th><th>Datei</th><th>&Auml;nderungsdatum</th><th>Gr&ouml;&szlig;e</th>';
 use constant S_MANASHOW   => '&Ouml;ffnen';
 use constant S_MPARCHIVE  => 'Archiv';
+
+# admin log
+use constant S_LOGTABLE => '<th>Datum</th><th>Ereignis</th><th>Benutzer</th><th>Post</th><th>IP</th><th>Kommentar (Ausschnitt)</th>';
+use constant S_LOGFILTERON => 'Letzte 100 Eintr&auml;ge anzeigen';
+use constant S_LOGFILTEROFF => 'Alle Eintr&auml;ge anzeigen';
+use constant S_LOGCOMMENTSSHOW => 'Vollst&auml;ndige Kommentare anzeigen';
+use constant S_LOGCOMMENTSHIDE => 'Vollst&auml;ndige Kommentare ausblenden';
+
+# admin staff accounts
+use constant S_ACCOUNTTABLE => '<th>Typ</th><th>Name</th><th>Status</th><th>Passwort</th><th>Zuletzt aktiv</th><th>Aktion</th>';
+use constant S_ACCOUNTNEW => 'Benutzer hinzuf&uuml;gen';
+use constant S_ACCOUNTTYPE => 'Typ';
+use constant S_ACCOUNTADMIN => 'Admin';
+use constant S_ACCOUNTMOD => 'Mod';
+use constant S_ACCOUNTENABLED => 'Aktiv';
+use constant S_ACCOUNTDISABLED => 'Deaktiviert';
+use constant S_ACCOUNTENABLE => '(aktivieren)';
+use constant S_ACCOUNTDISABLE => '(deaktivieren)';
+use constant S_ACCOUNTPASS => '&Auml;ndern';
+use constant S_ACCOUNTREMOVE => 'L&ouml;schen';
+use constant S_ACCOUNTEXISTS => 'Benutzer existiert bereits.';
+
+# staff change password
+use constant S_PASSOLD  => 'Aktuelles Passwort';
+use constant S_PASSNEW1 => 'Neues Passwort';
+use constant S_PASSNEW2 => 'Passwort best&auml;tigen';
+use constant S_PWCHANGEERR1 => 'Fehler: Neues Passwort und Best&auml;tigung stimmten nicht &uuml;berein.';
+use constant S_PWCHANGEERR2 => 'Fehler: Aktuelles Passwort falsch.';
+use constant S_PWCHANGEFAIL => 'Passwort nicht ge&auml;ndert.';
+use constant S_PWCHANGEOK   => 'Passwort von Benutzer <i>%s</i> erfolgreich ge&auml;ndert.';
 
 # post edit heading
 use constant S_NOTAGS => 'Formatierung nur mit HTML-Tags. Keine Parser-Verarbeitung.'
@@ -178,7 +213,10 @@ use constant S_BANIPLABEL      => 'IP-Adresse';
 use constant S_BANMASKLABEL    => 'Netzmaske';
 use constant S_BANDURATION     => 'Dauer';
 use constant S_BANREASONLABEL  => 'Grund';
+use constant S_BANINTERNALCOMMENTLABEL => 'Notiz';
+use constant S_BANGLOBAL       => 'Auf allen Boards';
 use constant S_BANFLAGPOST     => 'Post als gesperrt markieren';
+use constant S_BANDELPOST      => 'Post l&ouml;schen';
 use constant S_BANIP           => 'IP sperren'; # ip ban submit
 use constant S_BANADDED        => 'Sperre hinzugefügt'; # json response
 use constant S_BANFOUND        => 'User ist bereits gesperrt'; # json response
@@ -199,7 +237,7 @@ use constant S_BANWRDFLTADD    => 'Filter hinzuf&uuml;gen'; # word filter submit
 use constant S_BANFILTER => 'Abgelaufene Sperren ausblenden';
 use constant S_BANSHOWALL => 'Abgelaufene Sperren anzeigen';
 use constant S_BANTABLE =>
-  '<th>Typ</th><th colspan="2">Wert</th><th>Kommentar</th><th>Erstelldatum</th><th>Ablaufdatum</th><th>Aktion</th>'
+  '<th>Typ</th><th colspan="2">Wert</th><th>Kommentar / Sperrgrund</th><th>Notiz</th><th>Board</th><th>Erstelldatum</th><th>Ablaufdatum</th><th>Ersteller</th><th>Aktion</th>'
   ;          # Explains names for Ban Panel
 use constant S_BANREMOVE       => 'Entfernen';
 
@@ -281,6 +319,9 @@ use constant S_DUPENAME =>
 
 use constant S_WRONGPASS => 'Fehler: Falsches Passwort / Bitte erneut anmelden.'
   ;    # Returns error for wrong password (when trying to access Manager modes)
+use constant S_BADSESSION => 'Fehler: Sitzung ung&uuml;ltig. Bitte erneut anmelden.';	# Returns error for wrong session ID (when trying to access Manager modes)
+use constant S_BADACCOUNT => 'Fehler: Konto deaktiviert';					# Returns error for disabled account (when trying to access Manager modes)
+use constant S_NOPRIV => 'Fehler: Keine Berechtigung';						# Returns error when mod tries to access or execute admin functions.
 
 use constant S_NOTWRITE =>
   'Fehler: Verzeichnis konnte nicht beschrieben werden.'

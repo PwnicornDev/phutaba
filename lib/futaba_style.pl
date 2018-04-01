@@ -35,7 +35,7 @@ use constant NORMAL_HEAD_INCLUDE => q{
 <head>
 <meta charset="<const CHARSET>" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title><const TITLE> &raquo; <if $title><var $title></if><if !$title>/<const BOARD_IDENT>/ - <const BOARD_NAME></if></title>
+<title><if $title><var $title></if><if !$title>/<const BOARD_IDENT>/ - <const BOARD_NAME></if></title>
 
 <link rel="stylesheet" type="text/css" href="/static/css/phutaba.css" />
 <if STYLESHEET><link rel="stylesheet" type="text/css" href="<const STYLESHEET>" /></if>
@@ -75,12 +75,28 @@ use constant NORMAL_HEAD_INCLUDE => q{
 <tr><td><b><const S_BANDURATION></b></td><td>
 } . DURATION_SELECT_INCLUDE . q{
 </td></tr>
+<if $admin eq 1>
+<tr>
+	<td><b><const S_BOARD></b></td><td>
+		<label><input id="global1" name="global" value="0" type="radio" />/<const BOARD_IDENT>/</label>
+		<label><input id="global2" name="global" value="1" checked="checked" type="radio" /><const S_BANGLOBAL></label>
+	</td>
+</tr>
+</if>
 <tr>
 	<td><b><const S_BANREASONLABEL></b></td><td><input id="reason" type="text" name="reason" size="40" /></td>
 </tr>
 <tr>
+	<td><b><const S_BANINTERNALCOMMENTLABEL></b></td><td><input id="icomment" type="text" name="icomment" size="40" /></td>
+</tr>
+<tr>
 	<td colspan="2">
 	<label><input id="ban_flag" type="checkbox" name="ban_flag" value="1" checked="checked" /> <b><const S_BANFLAGPOST></b></label>
+	</td>
+</tr>
+<tr>
+	<td colspan="2">
+	<label><input id="del_post" type="checkbox" name="del_post" value="1" /> <b><const S_BANDELPOST></b></label>
 	</td>
 </tr>
 </table>
@@ -131,10 +147,15 @@ use constant MANAGER_HEAD_INCLUDE => NORMAL_HEAD_INCLUDE . q{
 <if $admin>
 	<!--[<a href="<var expand_filename(HTML_SELF)>"><const S_MANARET></a>]-->
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=show"><const S_MANAPANEL></a>]
-	[<a href="<var $self>?board=<var get_board_id()>&amp;task=mpanel"><const S_MANATOOLS></a>]
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=bans"><const S_MANABANS></a>]
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=log"><const S_MANALOG></a>]
+	<if $admin eq 1>
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=mpanel"><const S_MANATOOLS></a>]
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=orphans"><const S_MANAORPH></a>]
-	[<a href="<var $self>?board=<var get_board_id()>&amp;task=logout"><const S_MANALOGOUT></a>]
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=staff"><const S_MANASTAFF></a>]
+	</if>
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=changepass"><const S_MANAPASS></a>]
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=logout"><const S_MANALOGOUT><if $staffname> - <var $staffname></if></a>]
 	[<var get_boards()>]
 	<div class="passvalid"><const S_MANAMODE></div>
 </if>
@@ -453,7 +474,7 @@ use constant ERROR_HEAD_INCLUDE => q{
 <head>
 	<meta charset="<const CHARSET>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title><const TITLE> &raquo; <var $error_page></title>
+	<title><var $error_page></title>
 	<link rel="stylesheet" type="text/css" href="/static/css/phutaba.css" />
 	<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico" />
 	<link rel="icon" type="image/x-icon" href="/img/favicon.ico" />
@@ -519,7 +540,7 @@ use constant ERROR_TEMPLATE => compile_template(
  <br /><br />
  <if $expires><var sprintf S_BANNEDEXPIRE, make_date($expires, DATE_STYLE, S_WEEKDAYS, S_MONTHS)></if>
  <if !$expires><const S_BANNEDNOEXPIRE></if>
- <br />
+ <br /><br />
 </loop>
 
  <br /><const S_BANNEDCONTACT>
@@ -541,18 +562,20 @@ use constant ADMIN_LOGIN_TEMPLATE => compile_template(
 <div align="center"><form action="<var $self>" method="post">
 <input type="hidden" name="task" value="admin" />
 <input type="hidden" name="board" value="<const BOARD_IDENT>" />
-<const S_ADMINPASS>
-<input type="password" name="berra" size="8" value="" />
-<br />
-<label><input type="checkbox" name="savelogin" /> <const S_MANASAVE></label>
-<br />
+
+<table><tbody>
+<tr><td class="postblock"><const S_STAFFUSER></td><td><input type="text" name="user" size="24" /></td></tr>
+<tr><td class="postblock"><const S_STAFFPASS></td><td><input type="password" name="berra" size="24" value="" /></td></tr>
+<tr><td>&nbsp;</td><td><label><input type="checkbox" name="savelogin" /> <const S_MANASAVE></label></td></tr>
+</tbody></table>
+
 <select name="nexttask">
 <option value="show"><const S_MANAPANEL></option>
-<option value="mpanel"><const S_MANATOOLS></option>
 <option value="bans"><const S_MANABANS></option>
-<option value="orphans"><const S_MANAORPH></option>
 </select>
 <input type="submit" value="<const S_MANALOGIN>" />
+
+
 </form></div>
 
 } . NORMAL_FOOT_INCLUDE
@@ -635,7 +658,14 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <tr><td class="postblock"><const S_BANIPLABEL></td><td><input type="text" name="ip" size="24" /></td></tr>
 <tr><td class="postblock"><const S_BANMASKLABEL></td><td>} . NETMASK_SELECT_INCLUDE . q{</td></tr>
 <tr><td class="postblock"><const S_BANDURATION></td><td>} . DURATION_SELECT_INCLUDE . q{</td></tr>
-<tr><td class="postblock"><const S_BANREASONLABEL></td><td><input type="text" name="comment" size="16" />
+<if $admin eq 1>
+	<tr><td class="postblock"><const S_BOARD></td><td>
+		<label><input name="global" value="0" type="radio" />/<const BOARD_IDENT>/</label>
+		<label><input name="global" value="1" checked="checked" type="radio" /><const S_BANGLOBAL></label>
+	</td></tr>
+</if>
+<tr><td class="postblock"><const S_BANREASONLABEL></td><td><input type="text" name="comment" size="24" /></td></tr>
+<tr><td class="postblock"><const S_BANINTERNALCOMMENTLABEL></td><td><input type="text" name="icomment" size="16" />
 <input type="submit" value="<const S_BANIP>" /></td></tr>
 </tbody></table></form>
 
@@ -702,7 +732,7 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 <tr class="managehead"><const S_BANTABLE></tr>
 
 <loop $bans>
-	<if $divider><tr class="managehead"><th colspan="7"></th></tr></if>
+	<if $divider><tr class="managehead"><th colspan="10"></th></tr></if>
 
 	<tr class="row<var $rowtype>">
 
@@ -732,6 +762,11 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 	</if>
 
 	<td><var $comment></td>
+	<td><var $icomment></td>
+	<td>
+	<if $type eq 'ipban'><var $boards></if>
+	<if $type ne 'ipban'>-</if>
+	</td>
 	<td>
 		<if $date>
 			<var $date>
@@ -747,6 +782,7 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 	</if>
 	<if $type ne 'ipban'>-</if>
 	</td>
+	<td><var $user></td>
 	<td><a href="<var $self>?task=removeban&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_BANREMOVE></a></td>
 	</tr>
 </loop>
@@ -824,5 +860,141 @@ use constant ADMIN_EDIT_TEMPLATE => compile_template(
 
 } . NORMAL_FOOT_INCLUDE
 );
+
+
+use constant LOG_PANEL_TEMPLATE => compile_template(
+	MANAGER_HEAD_INCLUDE . q{
+
+<div class="dellist"><const S_MANALOG></div>
+
+[<a href="<var $self>?board=<var get_board_id()>&amp;task=log&amp;filter=<var $filter>&amp;show=<var !$show>"><if $filter><const S_LOGFILTEROFF></if><if !$filter><const S_LOGFILTERON></if></a>]
+[<a href="<var $self>?board=<var get_board_id()>&amp;task=log&amp;filter=<var !$filter>&amp;show=<var $show>"><if $show><const S_LOGCOMMENTSSHOW></if><if !$show><const S_LOGCOMMENTSHIDE></if></a>]
+
+<table align="center"><tbody>
+<tr class="managehead"><const S_LOGTABLE></tr>
+
+<loop $log>
+	<tr class="row<var $rowtype>">
+		<td><var make_date($timestamp, '2ch')></td>
+		<td><var $event></td>
+		<td><var $user></td>
+		<td><var $reflink></td>
+		<td><if $ip><var dec_to_dot($ip)></if><if !$ip>-</if></td>
+		<td><var $preview></td>
+	</tr>
+	<if $posttext><tr class="row<var $rowtype>"><td colspan="6"><var $posttext></td></tr></if>
+</loop>
+
+</tbody></table><br />
+
+} . NORMAL_FOOT_INCLUDE
+);
+
+
+use constant STAFF_PANEL_TEMPLATE => compile_template(
+	MANAGER_HEAD_INCLUDE . q{
+
+<div class="dellist"><const S_MANASTAFF></div>
+
+<div class="postarea">
+<table><tbody><tr><td valign="bottom">
+
+<form action="<var $self>" method="post">
+<input type="hidden" name="task" value="adduser" />
+<input type="hidden" name="board" value="<const BOARD_IDENT>" />
+<table><tbody>
+<tr><td class="postblock"><const S_STAFFUSER></td><td><input type="text" name="user" size="24" /></td></tr>
+<tr><td class="postblock"><const S_STAFFPASS></td><td><input type="password" name="password1" size="24" /></td></tr>
+<tr><td class="postblock"><const S_PASSNEW2></td><td><input type="password" name="password2" size="24" /></td></tr>
+<tr><td class="postblock"><const S_ACCOUNTTYPE></td><td>
+<label><input type="radio" name="type" value="1"><const S_ACCOUNTADMIN></label>&nbsp;
+<label><input type="radio" name="type" value="2" checked="checked"><const S_ACCOUNTMOD></label>&nbsp;&nbsp;
+<input type="submit" value="<const S_ACCOUNTNEW>" />
+</td></tr>
+
+</tbody></table></form>
+
+</td></tr></tbody></table>
+</div><br />
+
+<table align="center"><tbody>
+<tr class="managehead"><const S_ACCOUNTTABLE></tr>
+
+<loop $users>
+        <if $divider><tr class="managehead"><th colspan="6"></th></tr></if>
+
+        <tr class="row<var $rowtype>">
+
+		<td>
+			<if $type == 1><const S_ACCOUNTADMIN></if>
+			<if $type == 2><const S_ACCOUNTMOD></if>
+		</td>
+
+		<td><var $user></td>
+
+		<td>
+			<if $enabled>
+				<const S_ACCOUNTENABLED>
+				<if $num ne $current>
+				<a href="<var $self>?task=disableuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTDISABLE></a>
+				</if>
+			</if>
+			<if !$enabled>
+				<const S_ACCOUNTDISABLED>
+				<a href="<var $self>?task=enableuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTENABLE></a>
+			</if>
+		</td>
+
+		<td><a href="<var $self>?task=changepass&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTPASS></a></td>
+
+        <td><if $timestamp><var make_date($timestamp, 'date', S_WEEKDAYS, S_MONTHS)></if></td>
+
+        <td>
+			<if $num ne $current && $user ne "admin">
+				<a href="<var $self>?task=removeuser&amp;board=<var get_board_id()>&amp;num=<var $num>"><const S_ACCOUNTREMOVE></a>
+			</if>
+		</td>
+
+        </tr>
+</loop>
+
+</tbody></table><br />
+
+} . NORMAL_FOOT_INCLUDE
+);
+
+
+
+use constant CHANGE_PASSWORD_TEMPLATE => compile_template(
+	MANAGER_HEAD_INCLUDE . q{
+
+<div class="dellist"><const S_MANAPASS></div>
+
+<div class="postarea">
+<table><tbody><tr><td valign="bottom">
+
+<form action="<var $self>" method="post">
+<input type="hidden" name="task" value="changepass" />
+<input type="hidden" name="board" value="<const BOARD_IDENT>" />
+<input type="hidden" name="num" value="<var $num>" />
+
+<table><tbody>
+<tr><td class="postblock"><const S_STAFFUSER></td><td><var $user></td></tr>
+<if !$pwreset>
+<tr><td class="postblock"><const S_PASSOLD></td><td><input type="password" name="oldpw" size="24" /></td></tr>
+</if>
+<tr><td class="postblock"><const S_PASSNEW1></td><td><input type="password" name="newpw1" size="24" /></td></tr>
+<tr><td class="postblock"><const S_PASSNEW2></td><td><input type="password" name="newpw2" size="24" />
+&nbsp;&nbsp;<input type="submit" value="<const S_MANAPASS>" />
+</td></tr>
+</tbody></table></form>
+<br /><var $msg>
+
+</td></tr></tbody></table>
+</div><br />
+
+} . NORMAL_FOOT_INCLUDE
+);
+
 
 1;
