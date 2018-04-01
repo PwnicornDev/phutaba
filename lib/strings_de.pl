@@ -216,6 +216,7 @@ use constant S_BANREASONLABEL  => 'Grund';
 use constant S_BANINTERNALCOMMENTLABEL => 'Notiz';
 use constant S_BANGLOBAL       => 'Auf allen Boards';
 use constant S_BANFLAGPOST     => 'Post als gesperrt markieren';
+use constant S_BANDELPOST      => 'Post l&ouml;schen';
 use constant S_BANIP           => 'IP sperren'; # ip ban submit
 use constant S_BANADDED        => 'Sperre hinzugefügt'; # json response
 use constant S_BANFOUND        => 'User ist bereits gesperrt'; # json response

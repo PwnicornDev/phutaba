@@ -42,6 +42,7 @@ function do_ban(ip, postid, board) {
 		$j("#reason").attr('disabled', true);
 		$j("#icomment").attr('disabled', true);
 		$j("#ban_flag").attr('disabled', true);
+		$j("#del_post").attr('disabled', true);
 	}
 
 	buttons = {
@@ -58,6 +59,7 @@ function do_ban(ip, postid, board) {
 			reason = $j("#reason").val() ? $j("#reason").val() : "no reason";
 			icomment = $j("#icomment").val() ? $j("#icomment").val() : "";
 			flag = $j("#ban_flag").prop('checked') ? 1 : 0;
+			del_post = $j("#del_post").prop('checked') ? 1 : 0;
 			global = 0;
 			if ($j('#global2').length && $j('#global2').prop('checked')) global = 1;
 
@@ -68,6 +70,7 @@ function do_ban(ip, postid, board) {
 				+ "&comment=" + encodeURIComponent(reason)
 				+ "&string=" + duration
 				+ "&flag=" + flag
+				+ "&delete=" + del_post
 				+ "&global=" + global
 				+ "&icomment=" + encodeURIComponent(icomment);
 
@@ -143,6 +146,7 @@ function do_ban(ip, postid, board) {
 				if ($j('#global2').length) $j("#global2").attr('disabled', false);
 				$j("#icomment").attr('disabled', false);
 				$j("#ban_flag").attr('disabled', false);
+				$j("#del_post").attr('disabled', false);
 				$j("#reason").attr('disabled', false).focus();
 				$j("#info").hide('normal');
 			} else if (data['results'] >= 1) {

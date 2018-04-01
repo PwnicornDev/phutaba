@@ -215,6 +215,7 @@ use constant S_BANDURATION     => 'Duration';
 use constant S_BANREASONLABEL  => 'Reason';
 use constant S_BANINTERNALCOMMENTLABEL => 'Note';
 use constant S_BANFLAGPOST     => 'Flag post as banned';
+use constant S_BANDELPOST      => 'Delete post';
 use constant S_BANGLOBAL       => 'On all boards';
 use constant S_BANIP           => 'Ban IP'; # ip ban submit
 use constant S_BANADDED        => 'New ban added'; # json response

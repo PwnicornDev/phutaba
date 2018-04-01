@@ -387,15 +387,16 @@ elsif ( $task eq "addip" ) {
 	my $ajax    = $query->param("ajax");
 	my $flag    = $query->param("flag");
 	my $global  = $query->param("global");
-    add_admin_entry( $admin, $type, $comment, parse_range( $ip, $mask ),
-        $string, $postid, $ajax, $flag, $icomment, $global );
+	my $delete  = $query->param("delete");
+    add_admin_entry($admin, $type, $comment, parse_range($ip, $mask),
+        $string, $postid, $ajax, $flag, $icomment, $global, $delete);
 }
 elsif ( $task eq "addstring" ) {
     my $admin   = $query->cookie("wakaadmin");
     my $type    = $query->param("type");
     my $string  = $query->param("string");
     my $comment = $query->param("comment");
-    add_admin_entry( $admin, $type, $comment, 0, 0, $string, 0, 0, 0, "", 0 );
+    add_admin_entry($admin, $type, $comment, 0, 0, $string, 0, 0, 0, "", 0, 0);
 }
 elsif ( $task eq "checkban" ) {
     my $ival1	= $query->param("ip");
@@ -2945,7 +2946,8 @@ sub do_logout {
 }
 
 sub add_admin_entry {
-    my ($admin, $type, $comment, $ival1, $ival2, $sval1, $postid, $ajax, $flag, $icomment, $global) = @_;
+    my ($admin, $type, $comment, $ival1, $ival2, $sval1, $postid, $ajax, $flag, $icomment, $global,
+		$delete) = @_;
     my ($sth, $utf8_encoded_json_text, $expires);
     my ($time) = time();
 
@@ -2991,10 +2993,13 @@ sub add_admin_entry {
 		$sth->execute( $type, $comment, $ival1, $ival2, $sval1, $time, $board, $icomment, $staffid )
 		  or make_error(S_SQLFAIL);
 
-		if ($postid and $flag) {
+		if ($postid and $flag and !$delete) {
 			$sth = $dbh->prepare( "UPDATE " . SQL_TABLE . " SET banned=? WHERE num=? LIMIT 1;" )
 			  or make_error(S_SQLFAIL);
 			$sth->execute($time, $postid) or make_error(S_SQLFAIL);
+		}
+		if ($postid and $delete) {
+			delete_post($postid, "", 0, 0, $admin, $staffid);
 		}
 
 		add_log_entry("New " . $type, $staffid, $postid, $comment, $ival1);

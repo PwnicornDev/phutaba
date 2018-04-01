@@ -94,6 +94,11 @@ use constant NORMAL_HEAD_INCLUDE => q{
 	<label><input id="ban_flag" type="checkbox" name="ban_flag" value="1" checked="checked" /> <b><const S_BANFLAGPOST></b></label>
 	</td>
 </tr>
+<tr>
+	<td colspan="2">
+	<label><input id="del_post" type="checkbox" name="del_post" value="1" /> <b><const S_BANDELPOST></b></label>
+	</td>
+</tr>
 </table>
 <div id="infobox" style="display: none">
 	<br />
