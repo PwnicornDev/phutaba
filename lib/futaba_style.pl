@@ -19,7 +19,8 @@ use constant NETMASK_SELECT_INCLUDE => q{
 
 use constant DURATION_SELECT_INCLUDE => q{
 <select id="duration" name="string">
-	<option value="86400">1 Tag</option>
+	<option value="18000">5 Stunden</option>
+	<option value="86400" selected="selected">1 Tag</option>
 	<option value="259200">3 Tage</option>
 	<option value="432000">5 Tage</option>
 	<option value="604800">1 Woche</option>
@@ -155,7 +156,7 @@ use constant MANAGER_HEAD_INCLUDE => NORMAL_HEAD_INCLUDE . q{
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=staff"><const S_MANASTAFF></a>]
 	</if>
 	[<a href="<var $self>?board=<var get_board_id()>&amp;task=changepass"><const S_MANAPASS></a>]
-	[<a href="<var $self>?board=<var get_board_id()>&amp;task=logout"><const S_MANALOGOUT><if $staffname> - <var $staffname></if></a>]
+	[<a href="<var $self>?board=<var get_board_id()>&amp;task=logout"><var sprintf S_MANALOGOUT, $staffname></a>]
 	[<var get_boards()>]
 	<div class="passvalid"><const S_MANAMODE></div>
 </if>
@@ -738,7 +739,7 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 
 	<if $type eq 'ipban'>
 		<td>IP</td>
-		<td><img src="/img/flags/<var $flag>.PNG" title="<var $flag>" /> <var dec_to_dot($ival1)></td><td>/<var get_mask_len($ival2)> (<var dec_to_dot($ival2)>)</td>
+		<td><img src="/img/flags/<var $flag>.PNG" title="<var $flag>" /> <var dec_to_dot($ival1)></td><td>/<var $masklen></td>
 	</if>
 	<if $type eq 'wordban'>
 		<td>Word</td>
@@ -750,7 +751,7 @@ use constant BAN_PANEL_TEMPLATE => compile_template(
 	</if>
 	<if $type eq 'whitelist'>
 		<td>Whitelist</td>
-		<td><img src="/img/flags/<var $flag>.PNG" title="<var $flag>" /> <var dec_to_dot($ival1)></td><td>/<var get_mask_len($ival2)> (<var dec_to_dot($ival2)>)</td>
+		<td><img src="/img/flags/<var $flag>.PNG" title="<var $flag>" /> <var dec_to_dot($ival1)></td><td>/<var $masklen></td>
 	</if>
 	<if $type eq 'asban'>
 		<td>ASNum</td>

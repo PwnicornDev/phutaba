@@ -125,7 +125,7 @@ use constant S_MANAORPH   => 'Verwaiste Dateien';
 use constant S_MANALOG    => 'Log anzeigen';
 use constant S_MANASTAFF  => 'Benutzer verwalten';
 use constant S_MANAPASS   => 'Passwort &auml;ndern';
-use constant S_MANALOGOUT => 'Abmelden';          #
+use constant S_MANALOGOUT => '%s abmelden';          #
 
 use constant S_MANAMODE => 'Administration';   # Prints heading on top of Manager page
 use constant S_MANARET => 'Zur&uuml;ck'
@@ -243,6 +243,7 @@ use constant S_BANREMOVE       => 'Entfernen';
 
 # admin error messages
 use constant S_WRDFLTINVALID => 'Wortfilter zu kurz oder zu lang oder enthält ungültige Zeichen.';
+use constant S_IPMASKINVALID => 'Netzwerkmaske ungültig';
 
 
 ## error messages
@@ -255,7 +256,7 @@ use constant S_NOTHREADERR  => 'Fehler: Der Thread existiert nicht.'
 use constant S_NOREC =>
   'Fehler: Post nicht gefunden.'; # Returns error when record cannot be found
 # posting errors
-use constant S_LOCKED    => 'Thread ist geschlossen.';
+use constant S_LOCKED    => 'Der Thread ist geschlossen.';
 use constant S_BADDELIP  => 'Fehler: Falsche IP-Adresse zum Löschen.'
   ;    # Returns error for wrong ip (when user tries to delete file)
 use constant S_BADDELPASS => 'Fehler: Falsches L&ouml;schpasswort.'
@@ -272,7 +273,7 @@ use constant S_BADCAPTCHA =>
   'Fehler: Falscher Captcha-Code.';    # Returns error when the captcha is wrong
 
 use constant S_STRREF =>
-  'Fehler: String abgewiesen.';    # Returns error when a string is refused
+  'Fehler: Zeichenkette abgewiesen.';    # Returns error when a string is refused
 use constant S_UNJUST => 'Fehler: Flood detektiert.'
   ; # Returns error on an unjust POST - prevents floodbots or ways not using POST method?
 use constant S_NOPIC => 'Fehler: Keine Datei ausgew&auml;hlt.'
@@ -328,7 +329,7 @@ use constant S_NOTWRITE =>
   ; # Returns error when the script cannot write to the directory, the chmod (777) is wrong
 use constant S_SPAM => 'Spam? Raus hier!';   # Returns error when detecting spam
 
-use constant S_SQLCONF => 'MySQL-Datenbankfehler'; # Database connection failure
+use constant S_SQLCONF => 'MySQL-Verbindungsfehler'; # Database connection failure
 use constant S_SQLFAIL => 'MySQL-Datenbankfehler'; # SQL Failure
 
 
