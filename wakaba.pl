@@ -2609,6 +2609,27 @@ sub make_admin_ban_panel {
 			my $flag = get_geolocation(dec_to_dot($$row{ival1}));
 			$flag = 'UNKNOWN' if ($flag eq 'unk' or $flag eq 'A1' or $flag eq 'A2');
 			$$row{flag} = $flag;
+
+			$$row{masklen} = get_mask_len($$row{ival2});
+			## temporary check for ival2 (net mask) to make sure all existing database entries are valid
+			## before the check in parse_range was introduced
+			my $mask = dec_to_dot($$row{ival2});
+			if ($mask =~ /:/) { # IPv6
+				$mask = dot_to_dec($mask);
+				my $binmask = $mask->as_bin();
+				my $binlen = length($binmask); # must be 130
+				my $maskok = $binmask =~ /^0b1+0*$/;
+				$$row{masklen} .= ', invalid mask: ' . dec_to_dot($$row{ival2})
+					unless ($binlen == 130 and $maskok);
+			} else {            # IPv4
+				$mask = dot_to_dec($mask);
+				my $binmask = sprintf("%b", $mask);
+				my $binlen = length($binmask); # must be 32
+				my $maskok = $binmask =~ /^1+0*$/;
+				$$row{masklen} .= ', invalid mask: ' . dec_to_dot($$row{ival2})
+					unless ($binlen == 32 and $maskok);
+			}
+			## temporary check end
 		}
 		if ($$row{type} eq 'ipban') {
 			# reflink in 'ipban' comments
@@ -3468,12 +3489,28 @@ sub parse_range {
 
 	if ($ip =~ /:/ or length(pack('w', $ip)) > 5) # IPv6
 	{
-		if ($mask =~ /:/) { $mask = dot_to_dec($mask); }
+		if ($mask =~ /:/) {
+			$mask = dot_to_dec($mask);
+
+			# verify that $mask is a valid IPv6 mask
+			my $binmask = $mask->as_bin();
+			my $binlen = length($binmask); # must be 130
+			my $maskok = $binmask =~ /^0b1+0*$/;
+			make_error(S_IPMASKINVALID) unless ($binlen == 130 and $maskok);
+		}
 		else { $mask = "340282366920938463463374607431768211455"; }
 	}
 	else # IPv4
 	{
-		if ( $mask =~ /^\d+\.\d+\.\d+\.\d+$/ ) { $mask = dot_to_dec($mask); }
+		if ( $mask =~ /^\d+\.\d+\.\d+\.\d+$/ ) {
+			$mask = dot_to_dec($mask);
+
+			# verfiy that $mask is a valid IPv4 mask
+			my $binmask = sprintf("%b", $mask);
+			my $binlen = length($binmask); # must be 32
+			my $maskok = $binmask =~ /^1+0*$/;
+			make_error(S_IPMASKINVALID) unless ($binlen == 32 and $maskok);
+		}
 		elsif ( $mask =~ /(\d+)/ ) { $mask = ( ~( ( 1 << $1 ) - 1 ) ); }
 		else                       { $mask = 0xffffffff; }
 	}

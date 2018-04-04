@@ -125,7 +125,7 @@ use constant S_MANAORPH   => 'Orphaned files';
 use constant S_MANALOG    => 'Show log';
 use constant S_MANASTAFF  => 'Staff accounts';
 use constant S_MANAPASS   => 'Change password';
-use constant S_MANALOGOUT => 'Logout';          #
+use constant S_MANALOGOUT => 'Logout %s';          #
 
 use constant S_MANAMODE => 'Administration';   # Prints heading on top of Manager page
 use constant S_MANARET => 'Return'
@@ -243,6 +243,7 @@ use constant S_BANREMOVE       => 'Remove';
 
 # admin error messages
 use constant S_WRDFLTINVALID => 'Wordfilter string too short or too long or contains invalid characters.';
+use constant S_IPMASKINVALID => 'Invalid network mask';
 
 
 ## error messages
