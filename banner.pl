@@ -3,11 +3,13 @@
 use CGI::Carp qw(fatalsToBrowser);
 
 use strict;
-use CGI;
+#use CGI;
+use CGI::Fast qw(:standard);
 
-my $query=new CGI;
+#my $query=new CGI;
+while (my $query = CGI::Fast->new()) {
+
 my $board=($query->param("board") or 'default');
-
 my ($bannerdir, @files);
 
 $bannerdir = 'img/banner/';
@@ -38,6 +40,7 @@ else
 	make_notfound();
 }
 
+}
 
 
 sub make_redirect($)
