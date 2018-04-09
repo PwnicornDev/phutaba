@@ -965,7 +965,7 @@ sub get_files($$$) {
 			$$res{thumbnail} = THUMB_DIR . $$res{thumbnail} if ($$res{thumbnail});
 		}
 
-		push($files, $res);
+		push(@{$files}, $res);
 	}
 }
 
@@ -1711,6 +1711,9 @@ sub format_comment {
 
 	# filter comment
 	$comment = apply_wordfilter($comment);
+
+	# convert full URLs to internal cross board references
+	$comment =~ s!${\BASE_URL}/([\wäöü]+)/thread/(?:[0-9]+#)?([0-9]+)!&gt;&gt;/$1/$2!g;
 
     # hide >>1 references from the quoting code
     $comment =~ s/&gt;&gt;([0-9\-]+)/&gtgt;$1/g;

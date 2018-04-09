@@ -144,7 +144,7 @@ sub get_meta_markup {
 	$markup .= "<strong>$options{MIMEType}:</strong> " . delete($$exifData{MIMEType}) . "<br />";
 
 	# merge all codec values into one array
-	my @codec_list = map { my $tag = $_; grep {/^$tag/} keys $exifData } @codec_tags;
+	my @codec_list = map { my $tag = $_; grep {/^$tag/} keys %$exifData } @codec_tags;
 	my @codecs = map { delete($$exifData{$_}) } @codec_list;
 
 	# replace english names with their translations
@@ -677,7 +677,7 @@ s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (\*|_) (?![<>\s\*_]) ([^<>]+?) (?<![<>\
 
         # do <span class="spoiler">
         $line =~
-s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (~~) (?![<>\s\*_]) ([^<>]+?) (?<![<>\s\*_\x80-\x9f\xe0-\xfc]) \1 (?![0-9a-zA-Z\*_]) }{<span class="spoiler">$2</span>}gx;
+s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (~~|%%) (?![<>\s\*_]) ([^<>]+?) (?<![<>\s\*_\x80-\x9f\xe0-\xfc]) \1 (?![0-9a-zA-Z\*_]) }{<span class="spoiler">$2</span>}gx;
 
         # do the smilies
 		foreach my $smiley (keys %smilies) {
