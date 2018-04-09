@@ -2352,7 +2352,9 @@ sub delete_post {
 				add_log_entry("Delete own files", undef, $post);
 			} else {
 				if (!$password and !$deletebyip) {
-					add_log_entry("System trim " . $posttype, undef, $post, $$row{comment}, $$row{ip});
+					my $logdata = "[created " . make_date($$row{timestamp}, '2ch') . " / lasthit "
+						. make_date($$row{lasthit}, '2ch')  . "] " . $$row{comment};
+					add_log_entry("System trim " . $posttype, undef, $post, $logdata, $$row{ip});
 				} else {
 					add_log_entry("Delete own " . $posttype, undef, $post, $$row{comment}, $$row{ip});
 				}

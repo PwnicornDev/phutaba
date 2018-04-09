@@ -154,7 +154,7 @@ BEGIN {
     eval "use constant CHARSET => 'utf-8'" unless ( defined &CHARSET );
     eval "use constant CONVERT_CHARSETS => 1"
       unless ( defined &CONVERT_CHARSETS );
-    eval "use constant TRIM_METHOD => 0"       unless ( defined &TRIM_METHOD );
+    eval "use constant TRIM_METHOD => 1"       unless ( defined &TRIM_METHOD );
     eval "use constant DATE_STYLE => 'phutaba'" unless ( defined &DATE_STYLE );
     eval "use constant DISPLAY_ID => 0"        unless ( defined &DISPLAY_ID );
     eval "use constant EMAIL_ID => 'Heaven'"   unless ( defined &EMAIL_ID );
