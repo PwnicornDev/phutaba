@@ -1523,7 +1523,6 @@ sub analyze_image {
     return ( "png", @res ) if ( @res = analyze_png($file) );
     return ( "gif", @res ) if ( @res = analyze_gif($file) );
 	return ( "pdf", @res ) if ( @res = analyze_pdf($file) );
-	#return ( "svg", @res ) if ( @res = analyze_svg($file) );
 	return ( "webm", @res ) if ( @res = analyze_webm($file) );
 	return ( "mp4", @res ) if ( @res = analyze_mp4($file) );
 
@@ -1631,26 +1630,6 @@ sub analyze_pdf($) {
 	return (1, 1);
 }
 
-# find some characteristic strings at the beginning of the XML.
-# can break on slightly different syntax. 
-sub analyze_svg($) {
-	my ($file) = @_;
-	my ($buffer, $header);
-
-	read($file, $buffer, 600);
-	seek($file, 0, 0);
-
-	$header = unpack("A600", $buffer);
-
-    if ($header =~ /<svg version=/i or $header =~ /<!DOCTYPE svg/i or
-		$header =~ m!<svg\s(?:.*\s)?xmlns="http://www\.w3\.org/2000/svg"\s!i or
-		$header =~ m!<svg\s(?:.*\n)*\s*xmlns="http://www\.w3\.org/2000/svg"\s!i) {
-        #return (1, 1);
-    }
-
-	return ();
-}
-
 sub analyze_webm($) {
     my ($file) = @_;
     my ($buffer);
@@ -1727,7 +1706,7 @@ sub make_thumbnail {
 
 	my $ignore_ar = "!"; # flag to force ImageMagick to ignore the aspect ratio of the image
 	# let ImageMagick figure out the thumbnail-ratio
-	$ignore_ar = "" if ($filename =~ /\.pdf$/ or $filename =~ /\.svg$/);
+	$ignore_ar = "" if ($filename =~ /\.pdf$/);
 
 	my $param = "";
 

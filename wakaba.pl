@@ -1713,7 +1713,7 @@ sub format_comment {
 	$comment = apply_wordfilter($comment);
 
 	# convert full URLs to internal cross board references
-	$comment =~ s!${\BASE_URL}/([\wäöü]+)/thread/(?:[0-9]+#)?([0-9]+)!&gt;&gt;/$1/$2!g;
+	$comment =~ s!${\BASE_URL}/([\wäöü]+)/thread/(?:[0-9]+#)?([0-9]+)!&gt;&gt;/$1/$2!g if (BASE_URL);
 
     # hide >>1 references from the quoting code
     $comment =~ s/&gt;&gt;([0-9\-]+)/&gtgt;$1/g;
@@ -2016,7 +2016,7 @@ sub process_file {
     my $filebase  = $time . sprintf("-%03d", int(rand(1000)));
     my $filename  = BOARD_IDENT . '/' . IMG_DIR . $filebase . '.' . $ext;
     my $thumbnail = BOARD_IDENT . '/' . THUMB_DIR . $filebase;
-	if ( $ext eq "png" or $ext eq "svg" )
+	if ( $ext eq "png" )
 	{
 		$thumbnail .= "s.png";
 	}
@@ -2074,7 +2074,7 @@ sub process_file {
     # do thumbnail
     my ( $tn_width, $tn_height, $tn_ext );
 
-    if ( !$width or !$filename =~ /\.svg$/ )    # unsupported file
+    if ( !$width )    # unsupported file
     {
 #        if ( $filetypes{$ext} )                 # externally defined filetype
 #        {
@@ -2095,7 +2095,6 @@ sub process_file {
     elsif ($width > MAX_W
         or $height > MAX_H
         or THUMBNAIL_SMALL
-        or $filename =~ /\.svg$/ # why not check $ext?
 		or $ext eq 'pdf'
 		or $ext eq 'webm'
 		or $ext eq 'mp4')
@@ -2114,7 +2113,7 @@ sub process_file {
             }
         }
 
-		if ($ext eq 'pdf' or $ext eq 'svg') { # cannot determine dimensions for these files
+		if ($ext eq 'pdf') { # cannot determine dimensions
 			undef($width);
 			undef($height);
 			$tn_width = MAX_W;
@@ -2123,7 +2122,7 @@ sub process_file {
 
         if (STUPID_THUMBNAILING) {
 			$thumbnail = $filename;
-			undef($thumbnail) if($ext eq 'pdf' or $ext eq 'svg' or $ext eq 'webm' or $ext eq 'mp4');
+			undef($thumbnail) if ($ext eq 'pdf' or $ext eq 'webm' or $ext eq 'mp4');
 		}
         else {
 			if ($ext eq 'webm' or $ext eq 'mp4') {
@@ -2148,7 +2147,7 @@ sub process_file {
 			}
 
 			# get the thumbnail size created by external program
-			if ($thumbnail and ($ext eq 'pdf' or $ext eq 'svg')) {
+			if ($thumbnail and ($ext eq 'pdf')) {
 				open THUMBNAIL,$thumbnail;
 				binmode THUMBNAIL;
 				($tn_ext, $tn_width, $tn_height) = analyze_image(\*THUMBNAIL, $thumbnail);
@@ -3208,21 +3207,49 @@ sub delete_all {
 
 	my ($stafftype, $staffid, $staffname) = check_session($admin);
 
+	# TODO: merge SQL queries for post/thread counting and deleting into one section
+
 	unless ($go and $ip) # do not allow empty IP (would delete anonymized (staff) posts)
 	{
 		my ($pcount, $tcount);
 
-		$sth = $dbh->prepare(
-			"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ?;"
-		) or make_error(S_SQLFAIL);
-		$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
-		$pcount = ($sth->fetchrow_array())[0];
+		if (length(pack('w', $ip)) > 5) { # IPv6 counting
+			$pcount = 0;
+			$tcount = 0;
 
-		$sth = $dbh->prepare(
-			"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND parent=0;"
-		) or make_error(S_SQLFAIL);
-		$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
-		$tcount = ($sth->fetchrow_array())[0];
+			my $find_ip = new Net::IP(dec_to_dot($ip)) or make_error(Net::IP::Error());
+			my $mask_len = get_mask_len($mask);
+			my $find_bits = substr($find_ip->binip(), 0, $mask_len);
+
+			# fetch all IPv6 post IDs and IPs from the database
+			$sth = $dbh->prepare(
+				"SELECT num,parent,ip FROM " . SQL_TABLE . " WHERE LENGTH(ip)>10 AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute();
+
+			while ($row = $sth->fetchrow_hashref()) {
+				my $post_ip = new Net::IP(dec_to_dot($$row{ip})) or make_error(Net::IP::Error());
+
+				# compare binary strings of $find_ip and $post_ip up to mask length
+				my $post_bits = substr($post_ip->binip(), 0, $mask_len);
+				if ($find_bits eq $post_bits) {
+					$pcount++;
+					$tcount++ unless ($$row{parent});
+				}
+			}
+		} else { # IPv4 counting
+			$sth = $dbh->prepare(
+				"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
+			$pcount = ($sth->fetchrow_array())[0];
+
+			$sth = $dbh->prepare(
+				"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND parent=0 AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
+			$tcount = ($sth->fetchrow_array())[0];
+		}
 
 		make_http_header();
 		print encode_string(DELETE_PANEL_TEMPLATE->(
@@ -3236,12 +3263,33 @@ sub delete_all {
 	}
 	else
 	{
-		$sth =
-		  $dbh->prepare( "SELECT num FROM " . SQL_TABLE . " WHERE ip & ? = ? & ?;" )
-		  or make_error(S_SQLFAIL);
-		$sth->execute( $mask, $ip, $mask ) or make_error(S_SQLFAIL);
-		while ( $row = $sth->fetchrow_hashref() ) { push( @posts, $$row{num} ); }
+		if (length(pack('w', $ip)) > 5) { # IPv6 deletions
+			my $find_ip = new Net::IP(dec_to_dot($ip)) or make_error(Net::IP::Error());
+			my $mask_len = get_mask_len($mask);
+			my $find_bits = substr($find_ip->binip(), 0, $mask_len);
 
+			# fetch all IPv6 post IDs and IPs from the database
+			$sth = $dbh->prepare(
+				"SELECT num,parent,ip FROM " . SQL_TABLE . " WHERE LENGTH(ip)>10 AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute();
+
+			while ($row = $sth->fetchrow_hashref()) {
+				my $post_ip = new Net::IP(dec_to_dot($$row{ip})) or make_error(Net::IP::Error());
+
+				# compare binary strings of $find_ip and $post_ip up to mask length
+				my $post_bits = substr($post_ip->binip(), 0, $mask_len);
+				if ($find_bits eq $post_bits) {
+					push (@posts, $$row{num});
+				}
+			}
+		} else { # IPv4 deletions
+			$sth =
+			  $dbh->prepare( "SELECT num FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND adminpost=0;" )
+			  or make_error(S_SQLFAIL);
+			$sth->execute( $mask, $ip, $mask ) or make_error(S_SQLFAIL);
+			while ( $row = $sth->fetchrow_hashref() ) { push( @posts, $$row{num} ); }
+		}
 		delete_stuff('', 0, $admin, 0, @posts);
 	}
 }
@@ -3520,6 +3568,7 @@ sub parse_range {
 		else                       { $mask = 0xffffffff; }
 	}
 
+	# convert IPv4 and IPv6 addresses to numeric string
     $ip = dot_to_dec($ip) if ( $ip =~ /(^\d+\.\d+\.\d+\.\d+$)|:/ );
 
     return ( $ip, $mask );
