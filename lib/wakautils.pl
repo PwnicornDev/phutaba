@@ -4,7 +4,6 @@ use strict;
 
 use Time::Local;
 use Socket;
-use Image::ExifTool;   # Extract meta info from posted files
 use Geo::IP;           # Location info on IP addresses
 use Net::IP qw(:PROC); # IPv6 conversions
 
@@ -33,9 +32,14 @@ sub url_regexp { return $url_re }
 sub get_meta {
 	my ($file, $charset, @tagList) = @_;
 	my (%data, $exifData);
-	my $exifTool = new Image::ExifTool;
 	@tagList = qw(-Directory -FileName -FileAccessDate -FileCreateDate -FileModifyDate -FilePermissions -Warning -ExifToolVersion) unless (@tagList);
-	$exifData = $exifTool->ImageInfo($file, \@tagList) if ($file);
+
+	eval "use Image::ExifTool";
+	unless ($@) {
+		my $exifTool = new Image::ExifTool;
+		$exifData = $exifTool->ImageInfo($file, \@tagList) if ($file);
+	}
+
 	foreach (keys %$exifData) {
 		my $val = $$exifData{$_};
 		if (ref $val eq 'ARRAY') {
@@ -1638,11 +1642,14 @@ sub analyze_webm($) {
     seek($file, 0, 0);
 
     if ($buffer eq "\x1A\x45\xDF\xA3") {
-		my $exifTool = new Image::ExifTool;
-		my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
-		seek($file, 0, 0);
-		if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
-			return($1, $2);
+		eval "use Image::ExifTool";
+		unless ($@) {
+			my $exifTool = new Image::ExifTool;
+			my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
+			seek($file, 0, 0);
+			if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
+				return($1, $2);
+			}
 		}
 	}
 
@@ -1661,11 +1668,14 @@ sub analyze_mp4($) {
 	if ($buffer1 eq "\x00\x00\x00"
 	  and $buffer2 eq "\x66\x74\x79\x70\x6D\x70\x34\x32"
 	  or  $buffer2 eq "\x66\x74\x79\x70\x69\x73\x6F\x6D") {
-		my $exifTool = new Image::ExifTool;
-		my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
-		seek($file, 0, 0);
-		if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
-			return($1, $2);
+		eval "use Image::ExifTool";
+		unless ($@) {
+			my $exifTool = new Image::ExifTool;
+			my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
+			seek($file, 0, 0);
+			if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
+				return($1, $2);
+			}
 		}
 	}
 

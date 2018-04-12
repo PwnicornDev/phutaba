@@ -6,7 +6,6 @@ use CGI::Carp qw(fatalsToBrowser set_message);
 
 use CGI;
 use DBI;
-use Net::DNS; # DNSBL request
 use Net::IP qw(:PROC);
 use JSON::XS;
 use JSON;
@@ -1040,6 +1039,9 @@ sub dnsbl_check {
     my ($ip) = @_;
 
 	return if ($ip =~ /:/); # IPv6
+
+	eval 'use Net::DNS';
+	return if ($@);
 
     foreach my $dnsbl_info ( @{&DNSBL_INFOS} ) {
         my $dnsbl_host   = @$dnsbl_info[0];
