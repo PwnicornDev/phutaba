@@ -1265,7 +1265,7 @@ sub post_stuff {
 		my ($banip, $banmask) = parse_range($numip, '');
 
 		$sth = $dbh->prepare(
-			"INSERT INTO " . SQL_ADMIN_TABLE . " VALUES(null,?,?,?,?,?,FROM_UNIXTIME(?));")
+			"INSERT INTO " . SQL_ADMIN_TABLE . " VALUES(null,?,?,?,?,?,FROM_UNIXTIME(?),null,null,null);")
 		  or make_error(S_SQLFAIL);
 		$sth->execute('ipban', S_AUTOBAN, $banip, $banmask, $time + 259200, $time)
 		  or make_error(S_SQLFAIL);
