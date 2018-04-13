@@ -86,7 +86,7 @@ use constant NOSAGE_WINDOW => 1200;			# Seconds that you can post to your own th
 use constant USE_SECURE_ADMIN => 0;			# Use HTTPS for the admin panel.
 use constant CHARSET => 'utf-8';				# Character set to use, typically 'utf-8' or 'shift_jis'. Disable charset handling by setting to ''. Remember to set Apache to use the same character set for .html files! (AddCharset shift_jis html)
 use constant CONVERT_CHARSETS => 1;			# Do character set conversions internally
-use constant TRIM_METHOD => 0;					# Which threads to trim (0: oldest - like futaba 1: least active - furthest back)
+use constant TRIM_METHOD => 1;					# Which threads to trim (0: oldest - like futaba 1: least active - furthest back)
 use constant ARCHIVE_MODE => 0;				# Old images and posts are moved into an archive dir instead of deleted (0: no 1: yes). It is HIGHLY RECOMMENDED you use TRIM_METHOD => 1 with this, or you may end up with unreferenced pictures in your archive
 use constant DATE_STYLE => 'phutaba';			# Date style ('phutaba', 'phutaba-en', 'futaba', '2ch', 'localtime', 'tiny')
 #use constant DISPLAY_ID => '';					# How to display user IDs (0 or '': don't display,
