@@ -1345,14 +1345,26 @@ sub post_stuff {
 			my $file_ts = time() . sprintf("-%03d", int(rand(1000)));
 			$file_ts = $time unless ($i);
 
+			my @process_result;
+			@process_result = process_file($files[$i], $files[$i], $file_ts);
+			if (scalar @process_result == 1) {
+				# delete previous n files if file n+1 was rejected
+				for (my $j = 0; $j < $i; $j++) {
+					unlink $filename[$j];
+					unlink $thumbnail[$j] if $thumbnail[$j];
+				}
+				# abort posting
+				make_error($process_result[0]);
+			}
+
 			($filename[$i], $md5[$i], $width[$i], $height[$i],
 				$thumbnail[$i], $tn_width[$i], $tn_height[$i],
 				$info[$i], $info_all[$i], $uploadname[$i])
-				= process_file($files[$i], $files[$i], $file_ts);
+				= @process_result;
 
 			# disabled because it breaks STUPID_THUMBNAILING => 1
 			#$filename[$i] =~ s!.*/!!; # remove leading path before writing to database
-			#$thumbnail[0] =~ s!.*/!!;
+			#$thumbnail[$i] =~ s!.*/!!;
 		}
 	}
 
@@ -2000,11 +2012,11 @@ sub process_file {
     my $known = ( $width or $filetypes{$ext} );
 	my $errfname = clean_string(decode_string($uploadname, CHARSET));
 
-    make_error(S_BADFORMAT . ' ('.$errfname.')') unless ( ALLOW_UNKNOWN or $known );
-    make_error(S_BADFORMAT . ' ('.$errfname.')') if ( grep { $_ eq $ext } FORBIDDEN_EXTENSIONS );
-    make_error(S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_WIDTH  and $width > MAX_IMAGE_WIDTH );
-    make_error(S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_HEIGHT and $height > MAX_IMAGE_HEIGHT );
-    make_error(S_TOOBIG . ' ('.$errfname.')')
+    return (S_BADFORMAT . ' ('.$errfname.')') unless ( ALLOW_UNKNOWN or $known );
+    return (S_BADFORMAT . ' ('.$errfname.')') if ( grep { $_ eq $ext } FORBIDDEN_EXTENSIONS );
+    return (S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_WIDTH  and $width > MAX_IMAGE_WIDTH );
+    return (S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_HEIGHT and $height > MAX_IMAGE_HEIGHT );
+    return (S_TOOBIG . ' ('.$errfname.')')
       if ( MAX_IMAGE_PIXELS and $width * $height > MAX_IMAGE_PIXELS );
 
 	# jpeg -> jpg
@@ -2376,7 +2388,9 @@ sub delete_post {
 				$$res{thumbnail} =~ s!.*/!!;
 				# delete images if they exist
 				unlink BOARD_IDENT . '/' . IMG_DIR . $$res{image};
-				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail}; # if ( $$res{thumbnail} =~ /^$thumb/ );
+				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail} if ($$res{thumbnail});
+				# old code to prevent deletion of /icons/*
+				##unlink $$res{thumbnail} if ( $$res{thumbnail} =~ /^$thumb/ );
             }
 
             # remove post and possible replies
@@ -2454,7 +2468,9 @@ sub delete_post {
 				$$res{thumbnail} =~ s!.*/!!;
 				# delete images if they exist
 				unlink BOARD_IDENT . '/' . IMG_DIR . $$res{image};
-				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail}; # if ( $$res{thumbnail} =~ /^$thumb/ );
+				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail} if ($$res{thumbnail});
+				# old code to prevent deletion of /icons/*
+				##unlink $$res{thumbnail} if ( $$res{thumbnail} =~ /^$thumb/ );
             }
 
 			$sth = $dbh->prepare( "UPDATE "
