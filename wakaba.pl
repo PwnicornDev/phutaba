@@ -1003,7 +1003,7 @@ sub resolve_reflinks($) {
 
 	$comment =~ s|<!--reflink-->&gt;&gt;/([\wäöü]+)/([0-9]+)|
 		my $res = get_board_post($1,$2);
-		if ($res) { '<span class="boardreflink"><a href="'
+		if ($res) { '<span class="backreflink"><a href="'
 			. get_reply_link($$res{num},$$res{parent},$1) . '">&gt;&gt;/'.$1.'/'.$2.'</a></span>' }
 		else { '<span class="backreflink"><del>&gt;&gt;/'.$1.'/'.$2.'</del></span>'; }
 	|e for 1 .. 10;
