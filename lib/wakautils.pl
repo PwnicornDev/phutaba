@@ -2073,13 +2073,15 @@ sub get_post_info($$) {
 		my $location = join(', ', @loc);
 
 		# as num, name and ban link
-		$items[4] =~ /^AS(\d+) /;
-		$items[4] .= ' [<a href="' . $ENV{SCRIPT_NAME}
-			. '?task=addstring&amp;type=asban&amp;board=' . $board
-			. '&amp;string=' . $1
-			. '&amp;comment=' . urlenc($items[4]) . '">Ban</a>]';
+		if ($items[4]) {
+			$items[4] =~ /^AS(\d+) /;
+			$items[4] .= ' [<a href="' . $ENV{SCRIPT_NAME}
+				. '?task=addstring&amp;type=asban&amp;board=' . $board
+				. '&amp;string=' . $1
+				. '&amp;comment=' . urlenc($items[4]) . '">Ban</a>]';
+		}
 
-		return $flag . $location . '<br />' . $items[4];
+		return $flag . $location . '<br />' . $items[5] . '<br />' . $items[4];
 	}
 }
 

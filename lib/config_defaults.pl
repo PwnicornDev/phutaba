@@ -22,6 +22,7 @@ BEGIN {
     eval "use constant SQL_STAFF_TABLE => 'staff'" unless (defined &SQL_STAFF_TABLE);
     eval "use constant SQL_STAFF_LOG_TABLE => 'staff_log'"
       unless (defined &SQL_STAFF_LOG_TABLE);
+    eval "use constant SQL_DNS_TABLE => 'dns'" unless (defined &SQL_DNS_TABLE);
     eval "use constant SQL_PREFIX => 'ernstchan_';" unless (defined &SQL_PREFIX);
     eval "use constant SSL_ICON => '/img/icons/ssl.png'" unless (defined &SSL_ICON);
     eval "use constant USE_TEMPFILES => 1" unless ( defined &USE_TEMPFILES );
@@ -188,6 +189,10 @@ BEGIN {
     eval "use constant VIDEO_CONVERT_COMMAND => 'avconv'"
       unless ( defined &VIDEO_CONVERT_COMMAND );
 
+    eval "use constant ENABLE_REVERSE_DNS => 0"
+      unless (defined &ENABLE_REVERSE_DNS);
+    eval "use constant RDNS_TIMEOUT => 0.5"
+      unless (defined &RDNS_TIMEOUT);
     eval "use constant ENABLE_DNSBL_CHECK => 0"
       unless (defined &ENABLE_DNSBL_CHECK);
     eval "use constant DNSBL_TIMEOUT => 0.1"

@@ -11,7 +11,6 @@ use JSON::XS;
 use JSON;
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 use IO::Socket; # IRC notify
-use IO::Select; # wait for DNSBL answer
 
 
 use constant HANDLER_ERROR_PAGE_HEAD => q{
@@ -164,6 +163,9 @@ init_staff_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL
 
 # check for staff log table
 init_staff_log_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL_STAFF_LOG_TABLE));
+
+# check for dns blocklist/hostname cache table
+init_dns_database() if (!-f BOARD_IDENT . "/sql_created" and !table_exists(SQL_DNS_TABLE));
 
 
 if ($json eq "stats") {
@@ -1035,49 +1037,125 @@ sub print_page {
     }
 }
 
+sub dns_request {
+	my ($request, $timeout) = @_;
+
+	my $result;
+	my $resolver = Net::DNS::Resolver->new;
+	my $bgsock = $resolver->bgsend($request);
+	my $sel = IO::Select->new($bgsock);
+	my @ready = $sel->can_read($timeout);
+
+	if (@ready) {
+		foreach my $sock (@ready) {
+			if ($sock == $bgsock) {
+				my $packet = $resolver->bgread($bgsock);
+				if ($packet) {
+					$result = $packet->header->rcode;
+					foreach my $rr ($packet->answer) {
+						if ($rr->type eq "A") {
+							$result = $rr->address;
+							last;
+						}
+						if ($rr->type eq "PTR") {
+							$result = $rr->rdatastr;
+							last;
+						}
+					}
+				}
+				$bgsock = undef;
+			}
+			$sel->remove($sock);
+			$sock = undef;
+		}
+	} else { $result = "timeout" };
+
+	return $result;
+}
+
 sub dnsbl_check {
-    my ($ip) = @_;
+    my ($ip, $numip) = @_;
 
-	return if ($ip =~ /:/); # IPv6
+	my ($host, $reverse_ip);
 
+	# clean up old entries
+	my $maxage = time() - 60 * 60;
+	$sth = $dbh->prepare(
+		"DELETE FROM " . SQL_DNS_TABLE . " WHERE timestamp<$maxage;"
+	) or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+
+	# check dns cache table first
+	$sth = $dbh->prepare(
+		"SELECT host,blocked FROM " . SQL_DNS_TABLE . " WHERE ip=?;"
+	) or make_error(S_SQLFAIL);
+	$sth->execute($numip) or make_error(S_SQLFAIL);
+	if (my $row = get_decoded_hashref($sth)) {
+		make_ban(S_BADHOSTPROXY, {ip => $ip, showmask => 0, reason => "Tor-Exit-Node"})
+			if ($$row{blocked});
+		return $$row{host};
+	}
+
+	# no cached entry found - perform dns requests
 	eval 'use Net::DNS';
 	return if ($@);
 
-    foreach my $dnsbl_info ( @{&DNSBL_INFOS} ) {
+	eval 'use IO::Select'; # wait for Net::DNS answer
+	return if ($@);
+
+	# temporary dns timing debug info
+	use Time::HiRes qw(gettimeofday tv_interval);
+	my ($t0, $debug_timings);
+
+	if (ENABLE_REVERSE_DNS) {
+		$t0 = [gettimeofday]; # debug
+		$host = dns_request($ip, RDNS_TIMEOUT);
+		$debug_timings = sprintf(" (rDNS %.0f ms", tv_interval($t0) * 1000); # debug
+		$host = clean_string(decode_string($host, CHARSET));
+		$host =~ s/\.$//;
+	}
+
+	if ($ip =~ /:/) { # IPv6
+		my $tempip = new Net::IP($ip) or make_error(Net::IP::Error());
+		$reverse_ip = $tempip->reverse_ip();
+		$reverse_ip =~ s/\.ip6\.arpa\.$//;
+	} else {          # IPv4
+		$reverse_ip = join('.', reverse split /\./, $ip);
+	}
+
+    foreach my $dnsbl_info (@{&DNSBL_INFOS}) {
         my $dnsbl_host   = @$dnsbl_info[0];
         my $dnsbl_answer = @$dnsbl_info[1];
-        my $dnsbl_error  = @$dnsbl_info[2];
-        my $result;
-        my $resolver;
-        my $reverse_ip    = join( '.', reverse split /\./, $ip );
-        my $dnsbl_request = join( '.', $reverse_ip,        $dnsbl_host );
+        my $dnsbl_error  = @$dnsbl_info[2]; # error message will not be stored in cache
+		# this is inconsistent with error messages resulting from a cached block error above
 
-        $resolver = Net::DNS::Resolver->new;
-        my $bgsock = $resolver->bgsend($dnsbl_request);
-        my $sel    = IO::Select->new($bgsock);
+        my $dnsbl_request = join('.', $reverse_ip, $dnsbl_host);
 
-        my @ready = $sel->can_read(DNSBL_TIMEOUT);
-        if (@ready) {
-            foreach my $sock (@ready) {
-                if ( $sock == $bgsock ) {
-                    my $packet = $resolver->bgread($bgsock);
-                    if ($packet) {
-                        foreach my $rr ( $packet->answer ) {
-                            next unless $rr->type eq "A";
-                            $result = $rr->address;
-                            last;
-                        }
-                    }
-                    $bgsock = undef;
-                }
-                $sel->remove($sock);
-                $sock = undef;
-            }
-        }
+		$t0 = [gettimeofday]; # debug
+        my $result = dns_request($dnsbl_request, DNSBL_TIMEOUT);
+		$debug_timings .= sprintf(", BL %.0f ms", tv_interval($t0) * 1000); # debug
+		$debug_timings .= " [timeout]" if ($result eq "timeout"); # debug
 
-		make_ban(S_BADHOSTPROXY, {ip => $ip, showmask => 0, reason => $dnsbl_error})
-			if ($result eq $dnsbl_answer);
+		# add block result to cache and deny posting
+		if ($result eq $dnsbl_answer) {
+			$host .= $debug_timings . ")"; # debug
+			$sth = $dbh->prepare(
+				"INSERT INTO " . SQL_DNS_TABLE . " VALUES(?,?,?,?);"
+			) or make_error(S_SQLFAIL);
+			$sth->execute($numip, time(), $host, $dnsbl_host) or make_error(S_SQLFAIL);
+
+			make_ban(S_BADHOSTPROXY, {ip => $ip, showmask => 0, reason => $dnsbl_error});
+		}
     }
+
+	$host .= $debug_timings . ")"; # debug
+	# ip was not found in any blocklist - add to cache
+	$sth = $dbh->prepare(
+		"INSERT INTO " . SQL_DNS_TABLE . " VALUES(?,?,?,null);"
+	) or make_error(S_SQLFAIL);
+	$sth->execute($numip, time(), $host) or make_error(S_SQLFAIL);
+
+	return $host;
 }
 
 
@@ -1247,7 +1325,7 @@ sub post_stuff {
 
     # check if IP is whitelisted
     my $whitelisted = is_whitelisted($numip);
-    dnsbl_check($ip) if ( !$whitelisted and ENABLE_DNSBL_CHECK );
+    my $host = dnsbl_check($ip, $numip) if (!$whitelisted and ENABLE_DNSBL_CHECK);
 
     # process the tripcode - maybe the string should be decoded later
     my $trip;
@@ -1281,7 +1359,7 @@ sub post_stuff {
     # check captcha
     check_captcha( $dbh, $captcha, $ip, $parent, BOARD_IDENT )
       if (need_captcha(CAPTCHA_MODE, CAPTCHA_SKIP, $loc) and !$admin and !is_trusted($trip));
-	$loc = join("<br />", $loc, $country_name, $region_name, $city, $as_info);
+	$loc = join("<br />", $loc, $country_name, $region_name, $city, $as_info, $host);
 
     # check if thread exists, and get lasthit value
     my ($parent_res, $lasthit, $autosage, $sticky);
@@ -2365,9 +2443,9 @@ sub delete_post {
 				add_log_entry("Delete own files", undef, $post);
 			} else {
 				if (!$password and !$deletebyip) {
-					my $logdata = "[created " . make_date($$row{timestamp}, '2ch') . " / lasthit "
-						. make_date($$row{lasthit}, '2ch')  . "] " . $$row{comment};
-					add_log_entry("System trim " . $posttype, undef, $post, $logdata, $$row{ip});
+					#my $logdata = "[created " . make_date($$row{timestamp}, '2ch') . " / lasthit "
+					#	. make_date($$row{lasthit}, '2ch')  . "] " . $$row{comment};
+					#add_log_entry("System trim " . $posttype, undef, $post, $logdata, $$row{ip});
 				} else {
 					add_log_entry("Delete own " . $posttype, undef, $post, $$row{comment}, $$row{ip});
 				}
@@ -3758,6 +3836,21 @@ sub init_staff_log_database() {
 	"staff INTEGER," .			# Staff account num from SQL_STAFF_TABLE
 	"ip TEXT," .				# IP of the post in case of ban or deletion
 	"comment TEXT" .			# Original post comment in case of deletion or edit
+
+	");") or make_error(S_SQLFAIL);
+	$sth->execute() or make_error(S_SQLFAIL);
+}
+
+sub init_dns_database() {
+	my ($sth);
+
+	$sth=$dbh->do("DROP TABLE " . SQL_DNS_TABLE . ";") if (table_exists(SQL_DNS_TABLE));
+	$sth=$dbh->prepare("CREATE TABLE ". SQL_DNS_TABLE . " (".
+
+	"ip TEXT," .				# numeric IP, 32/128 bit integer stored as text
+	"timestamp INTEGER," .		# Time of creation or last check
+	"host TEXT," .				# Reverse DNS name
+	"blocked TEXT" .			# Not empty if IP was found in any blocklist
 
 	");") or make_error(S_SQLFAIL);
 	$sth->execute() or make_error(S_SQLFAIL);
