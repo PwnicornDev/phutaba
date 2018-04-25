@@ -1040,7 +1040,7 @@ sub print_page {
 sub dns_request {
 	my ($request, $timeout) = @_;
 
-	my $result;
+	my ($result, $status);
 	my $resolver = Net::DNS::Resolver->new;
 	my $bgsock = $resolver->bgsend($request);
 	my $sel = IO::Select->new($bgsock);
@@ -1051,7 +1051,9 @@ sub dns_request {
 			if ($sock == $bgsock) {
 				my $packet = $resolver->bgread($bgsock);
 				if ($packet) {
+					$status .= $packet->header->rcode . " (" . $packet->header->ancount . ")";
 					foreach my $rr ($packet->answer) {
+						$status .= " " . $rr->type;
 						if ($rr->type eq "A") {
 							$result = $rr->address;
 							last;
@@ -1067,9 +1069,9 @@ sub dns_request {
 			$sel->remove($sock);
 			$sock = undef;
 		}
-	}
+	} else { $status = "timeout" };
 
-	return $result;
+	return ($result, $status);
 }
 
 sub dnsbl_check {
@@ -1102,8 +1104,15 @@ sub dnsbl_check {
 	eval 'use IO::Select'; # wait for Net::DNS answer
 	return if ($@);
 
+	# temporary dns timing debug info
+	use Time::HiRes qw(gettimeofday tv_interval);
+	my ($t0, $debug_timings);
+
 	if (ENABLE_REVERSE_DNS) {
-		$host = dns_request($ip, RDNS_TIMEOUT);
+		$t0 = [gettimeofday]; # debug
+		my $types; # debug
+		($host, $types) = dns_request($ip, RDNS_TIMEOUT);
+		$debug_timings = sprintf(" (rDNS %.0f ms [%s]", tv_interval($t0) * 1000, $types); # debug
 		$host = clean_string(decode_string($host, CHARSET));
 		$host =~ s/\.$//;
 	}
@@ -1124,10 +1133,13 @@ sub dnsbl_check {
 
         my $dnsbl_request = join('.', $reverse_ip, $dnsbl_host);
 
-        my $result = dns_request($dnsbl_request, DNSBL_TIMEOUT);
+		$t0 = [gettimeofday]; # debug
+        my ($result, $types) = dns_request($dnsbl_request, DNSBL_TIMEOUT);
+		$debug_timings .= sprintf(", BL %.0f ms [%s]", tv_interval($t0) * 1000, $types); # debug
 
 		# add block result to cache and deny posting
 		if ($result eq $dnsbl_answer) {
+			$host .= $debug_timings . ")"; # debug
 			$sth = $dbh->prepare(
 				"INSERT INTO " . SQL_DNS_TABLE . " VALUES(?,?,?,?);"
 			) or make_error(S_SQLFAIL);
@@ -1137,6 +1149,7 @@ sub dnsbl_check {
 		}
     }
 
+	$host .= $debug_timings . ")"; # debug
 	# ip was not found in any blocklist - add to cache
 	$sth = $dbh->prepare(
 		"INSERT INTO " . SQL_DNS_TABLE . " VALUES(?,?,?,null);"
@@ -2431,9 +2444,9 @@ sub delete_post {
 				add_log_entry("Delete own files", undef, $post);
 			} else {
 				if (!$password and !$deletebyip) {
-					my $logdata = "[created " . make_date($$row{timestamp}, '2ch') . " / lasthit "
-						. make_date($$row{lasthit}, '2ch')  . "] " . $$row{comment};
-					add_log_entry("System trim " . $posttype, undef, $post, $logdata, $$row{ip});
+					#my $logdata = "[created " . make_date($$row{timestamp}, '2ch') . " / lasthit "
+					#	. make_date($$row{lasthit}, '2ch')  . "] " . $$row{comment};
+					#add_log_entry("System trim " . $posttype, undef, $post, $logdata, $$row{ip});
 				} else {
 					add_log_entry("Delete own " . $posttype, undef, $post, $$row{comment}, $$row{ip});
 				}
