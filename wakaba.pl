@@ -1040,7 +1040,7 @@ sub print_page {
 sub dns_request {
 	my ($request, $timeout) = @_;
 
-	my ($result, $status);
+	my $result;
 	my $resolver = Net::DNS::Resolver->new;
 	my $bgsock = $resolver->bgsend($request);
 	my $sel = IO::Select->new($bgsock);
@@ -1051,9 +1051,8 @@ sub dns_request {
 			if ($sock == $bgsock) {
 				my $packet = $resolver->bgread($bgsock);
 				if ($packet) {
-					$status .= $packet->header->rcode . " (" . $packet->header->ancount . ")";
+					$result = $packet->header->rcode;
 					foreach my $rr ($packet->answer) {
-						$status .= " " . $rr->type;
 						if ($rr->type eq "A") {
 							$result = $rr->address;
 							last;
@@ -1069,9 +1068,9 @@ sub dns_request {
 			$sel->remove($sock);
 			$sock = undef;
 		}
-	} else { $status = "timeout" };
+	} else { $result = "timeout" };
 
-	return ($result, $status);
+	return $result;
 }
 
 sub dnsbl_check {
@@ -1110,9 +1109,8 @@ sub dnsbl_check {
 
 	if (ENABLE_REVERSE_DNS) {
 		$t0 = [gettimeofday]; # debug
-		my $types; # debug
-		($host, $types) = dns_request($ip, RDNS_TIMEOUT);
-		$debug_timings = sprintf(" (rDNS %.0f ms [%s]", tv_interval($t0) * 1000, $types); # debug
+		$host = dns_request($ip, RDNS_TIMEOUT);
+		$debug_timings = sprintf(" (rDNS %.0f ms", tv_interval($t0) * 1000); # debug
 		$host = clean_string(decode_string($host, CHARSET));
 		$host =~ s/\.$//;
 	}
@@ -1129,13 +1127,13 @@ sub dnsbl_check {
         my $dnsbl_host   = @$dnsbl_info[0];
         my $dnsbl_answer = @$dnsbl_info[1];
         my $dnsbl_error  = @$dnsbl_info[2]; # error message will not be stored in cache
-		# this is not consistent with error messages resulting from a cached block error above
+		# this is inconsistent with error messages resulting from a cached block error above
 
         my $dnsbl_request = join('.', $reverse_ip, $dnsbl_host);
 
 		$t0 = [gettimeofday]; # debug
-        my ($result, $types) = dns_request($dnsbl_request, DNSBL_TIMEOUT);
-		$debug_timings .= sprintf(", BL %.0f ms [%s]", tv_interval($t0) * 1000, $types); # debug
+        my $result = dns_request($dnsbl_request, DNSBL_TIMEOUT);
+		$debug_timings .= sprintf(", BL %.0f ms", tv_interval($t0) * 1000); # debug
 
 		# add block result to cache and deny posting
 		if ($result eq $dnsbl_answer) {
