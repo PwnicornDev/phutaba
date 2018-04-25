@@ -4,7 +4,6 @@ use strict;
 
 use Time::Local;
 use Socket;
-use Image::ExifTool;   # Extract meta info from posted files
 use Geo::IP;           # Location info on IP addresses
 use Net::IP qw(:PROC); # IPv6 conversions
 
@@ -33,9 +32,14 @@ sub url_regexp { return $url_re }
 sub get_meta {
 	my ($file, $charset, @tagList) = @_;
 	my (%data, $exifData);
-	my $exifTool = new Image::ExifTool;
 	@tagList = qw(-Directory -FileName -FileAccessDate -FileCreateDate -FileModifyDate -FilePermissions -Warning -ExifToolVersion) unless (@tagList);
-	$exifData = $exifTool->ImageInfo($file, \@tagList) if ($file);
+
+	eval "use Image::ExifTool";
+	unless ($@) {
+		my $exifTool = new Image::ExifTool;
+		$exifData = $exifTool->ImageInfo($file, \@tagList) if ($file);
+	}
+
 	foreach (keys %$exifData) {
 		my $val = $$exifData{$_};
 		if (ref $val eq 'ARRAY') {
@@ -144,7 +148,7 @@ sub get_meta_markup {
 	$markup .= "<strong>$options{MIMEType}:</strong> " . delete($$exifData{MIMEType}) . "<br />";
 
 	# merge all codec values into one array
-	my @codec_list = map { my $tag = $_; grep {/^$tag/} keys $exifData } @codec_tags;
+	my @codec_list = map { my $tag = $_; grep {/^$tag/} keys %$exifData } @codec_tags;
 	my @codecs = map { delete($$exifData{$_}) } @codec_list;
 
 	# replace english names with their translations
@@ -677,7 +681,7 @@ s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (\*|_) (?![<>\s\*_]) ([^<>]+?) (?<![<>\
 
         # do <span class="spoiler">
         $line =~
-s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (~~) (?![<>\s\*_]) ([^<>]+?) (?<![<>\s\*_\x80-\x9f\xe0-\xfc]) \1 (?![0-9a-zA-Z\*_]) }{<span class="spoiler">$2</span>}gx;
+s{ (?<![0-9a-zA-Z\*_\x80-\x9f\xe0-\xfc]) (~~|%%) (?![<>\s\*_]) ([^<>]+?) (?<![<>\s\*_\x80-\x9f\xe0-\xfc]) \1 (?![0-9a-zA-Z\*_]) }{<span class="spoiler">$2</span>}gx;
 
         # do the smilies
 		foreach my $smiley (keys %smilies) {
@@ -1523,7 +1527,6 @@ sub analyze_image {
     return ( "png", @res ) if ( @res = analyze_png($file) );
     return ( "gif", @res ) if ( @res = analyze_gif($file) );
 	return ( "pdf", @res ) if ( @res = analyze_pdf($file) );
-	#return ( "svg", @res ) if ( @res = analyze_svg($file) );
 	return ( "webm", @res ) if ( @res = analyze_webm($file) );
 	return ( "mp4", @res ) if ( @res = analyze_mp4($file) );
 
@@ -1631,26 +1634,6 @@ sub analyze_pdf($) {
 	return (1, 1);
 }
 
-# find some characteristic strings at the beginning of the XML.
-# can break on slightly different syntax. 
-sub analyze_svg($) {
-	my ($file) = @_;
-	my ($buffer, $header);
-
-	read($file, $buffer, 600);
-	seek($file, 0, 0);
-
-	$header = unpack("A600", $buffer);
-
-    if ($header =~ /<svg version=/i or $header =~ /<!DOCTYPE svg/i or
-		$header =~ m!<svg\s(?:.*\s)?xmlns="http://www\.w3\.org/2000/svg"\s!i or
-		$header =~ m!<svg\s(?:.*\n)*\s*xmlns="http://www\.w3\.org/2000/svg"\s!i) {
-        #return (1, 1);
-    }
-
-	return ();
-}
-
 sub analyze_webm($) {
     my ($file) = @_;
     my ($buffer);
@@ -1659,11 +1642,14 @@ sub analyze_webm($) {
     seek($file, 0, 0);
 
     if ($buffer eq "\x1A\x45\xDF\xA3") {
-		my $exifTool = new Image::ExifTool;
-		my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
-		seek($file, 0, 0);
-		if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
-			return($1, $2);
+		eval "use Image::ExifTool";
+		unless ($@) {
+			my $exifTool = new Image::ExifTool;
+			my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
+			seek($file, 0, 0);
+			if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
+				return($1, $2);
+			}
 		}
 	}
 
@@ -1682,11 +1668,14 @@ sub analyze_mp4($) {
 	if ($buffer1 eq "\x00\x00\x00"
 	  and $buffer2 eq "\x66\x74\x79\x70\x6D\x70\x34\x32"
 	  or  $buffer2 eq "\x66\x74\x79\x70\x69\x73\x6F\x6D") {
-		my $exifTool = new Image::ExifTool;
-		my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
-		seek($file, 0, 0);
-		if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
-			return($1, $2);
+		eval "use Image::ExifTool";
+		unless ($@) {
+			my $exifTool = new Image::ExifTool;
+			my $exifData = $exifTool->ImageInfo($file, 'ImageSize');
+			seek($file, 0, 0);
+			if ($$exifData{ImageSize} =~ /(\d+)x(\d+)/) {
+				return($1, $2);
+			}
 		}
 	}
 
@@ -1727,7 +1716,7 @@ sub make_thumbnail {
 
 	my $ignore_ar = "!"; # flag to force ImageMagick to ignore the aspect ratio of the image
 	# let ImageMagick figure out the thumbnail-ratio
-	$ignore_ar = "" if ($filename =~ /\.pdf$/ or $filename =~ /\.svg$/);
+	$ignore_ar = "" if ($filename =~ /\.pdf$/);
 
 	my $param = "";
 

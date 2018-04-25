@@ -17,7 +17,7 @@ use constant S_DELEXPL     => '(optional)';    # Prints explanation for password
 use constant S_ALLOWED => 'Allowed file extensions (max. size %s or specified)';
 
 # if post form not shown in locked threads
-use constant S_THREADLOCKED => '<strong>Thread %s</strong> is locked. No replys can be posted.';
+use constant S_THREADLOCKED => '<strong>Thread %s</strong> is locked. No replies can be posted.';
 
 ## thread / post header
 use constant S_HIDE => 'Hide thread %d';

@@ -25,7 +25,7 @@ BEGIN {
     eval "use constant SQL_PREFIX => 'ernstchan_';" unless (defined &SQL_PREFIX);
     eval "use constant SSL_ICON => '/img/icons/ssl.png'" unless (defined &SSL_ICON);
     eval "use constant USE_TEMPFILES => 1" unless ( defined &USE_TEMPFILES );
-    eval "use constant TITLE => 'Wakaba image board'" unless ( defined &TITLE );
+    eval "use constant TITLE => 'Phutaba Imageboard'" unless ( defined &TITLE );
     eval "use constant SHOWTITLETXT => 1" unless ( defined &SHOWTITLETXT );
     eval "use constant SHOWTITLEIMG => 0" unless ( defined &SHOWTITLEIMG );
     eval "use constant TITLEIMG => 'title.jpg'" unless ( defined &TITLEIMG );
@@ -154,7 +154,7 @@ BEGIN {
     eval "use constant CHARSET => 'utf-8'" unless ( defined &CHARSET );
     eval "use constant CONVERT_CHARSETS => 1"
       unless ( defined &CONVERT_CHARSETS );
-    eval "use constant TRIM_METHOD => 0"       unless ( defined &TRIM_METHOD );
+    eval "use constant TRIM_METHOD => 1"       unless ( defined &TRIM_METHOD );
     eval "use constant DATE_STYLE => 'phutaba'" unless ( defined &DATE_STYLE );
     eval "use constant DISPLAY_ID => 0"        unless ( defined &DISPLAY_ID );
     eval "use constant EMAIL_ID => 'Heaven'"   unless ( defined &EMAIL_ID );

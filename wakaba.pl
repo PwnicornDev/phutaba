@@ -6,7 +6,6 @@ use CGI::Carp qw(fatalsToBrowser set_message);
 
 use CGI;
 use DBI;
-use Net::DNS; # DNSBL request
 use Net::IP qw(:PROC);
 use JSON::XS;
 use JSON;
@@ -965,7 +964,7 @@ sub get_files($$$) {
 			$$res{thumbnail} = THUMB_DIR . $$res{thumbnail} if ($$res{thumbnail});
 		}
 
-		push($files, $res);
+		push(@{$files}, $res);
 	}
 }
 
@@ -1040,6 +1039,9 @@ sub dnsbl_check {
     my ($ip) = @_;
 
 	return if ($ip =~ /:/); # IPv6
+
+	eval 'use Net::DNS';
+	return if ($@);
 
     foreach my $dnsbl_info ( @{&DNSBL_INFOS} ) {
         my $dnsbl_host   = @$dnsbl_info[0];
@@ -1263,7 +1265,7 @@ sub post_stuff {
 		my ($banip, $banmask) = parse_range($numip, '');
 
 		$sth = $dbh->prepare(
-			"INSERT INTO " . SQL_ADMIN_TABLE . " VALUES(null,?,?,?,?,?,FROM_UNIXTIME(?));")
+			"INSERT INTO " . SQL_ADMIN_TABLE . " VALUES(null,?,?,?,?,?,FROM_UNIXTIME(?),null,null,null);")
 		  or make_error(S_SQLFAIL);
 		$sth->execute('ipban', S_AUTOBAN, $banip, $banmask, $time + 259200, $time)
 		  or make_error(S_SQLFAIL);
@@ -1343,14 +1345,26 @@ sub post_stuff {
 			my $file_ts = time() . sprintf("-%03d", int(rand(1000)));
 			$file_ts = $time unless ($i);
 
+			my @process_result;
+			@process_result = process_file($files[$i], $files[$i], $file_ts);
+			if (scalar @process_result == 1) {
+				# delete previous n files if file n+1 was rejected
+				for (my $j = 0; $j < $i; $j++) {
+					unlink $filename[$j];
+					unlink $thumbnail[$j] if $thumbnail[$j];
+				}
+				# abort posting
+				make_error($process_result[0]);
+			}
+
 			($filename[$i], $md5[$i], $width[$i], $height[$i],
 				$thumbnail[$i], $tn_width[$i], $tn_height[$i],
 				$info[$i], $info_all[$i], $uploadname[$i])
-				= process_file($files[$i], $files[$i], $file_ts);
+				= @process_result;
 
 			# disabled because it breaks STUPID_THUMBNAILING => 1
 			#$filename[$i] =~ s!.*/!!; # remove leading path before writing to database
-			#$thumbnail[0] =~ s!.*/!!;
+			#$thumbnail[$i] =~ s!.*/!!;
 		}
 	}
 
@@ -1712,6 +1726,9 @@ sub format_comment {
 	# filter comment
 	$comment = apply_wordfilter($comment);
 
+	# convert full URLs to internal cross board references
+	$comment =~ s!${\BASE_URL}/([\wäöü]+)/thread/(?:[0-9]+#)?([0-9]+)!&gt;&gt;/$1/$2!g if (BASE_URL);
+
     # hide >>1 references from the quoting code
     $comment =~ s/&gt;&gt;([0-9\-]+)/&gtgt;$1/g;
     $comment =~ s|&gt;&gt;(/[\wäöü]+/[0-9\-]+)|&gtgt;$1|g;
@@ -1995,11 +2012,11 @@ sub process_file {
     my $known = ( $width or $filetypes{$ext} );
 	my $errfname = clean_string(decode_string($uploadname, CHARSET));
 
-    make_error(S_BADFORMAT . ' ('.$errfname.')') unless ( ALLOW_UNKNOWN or $known );
-    make_error(S_BADFORMAT . ' ('.$errfname.')') if ( grep { $_ eq $ext } FORBIDDEN_EXTENSIONS );
-    make_error(S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_WIDTH  and $width > MAX_IMAGE_WIDTH );
-    make_error(S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_HEIGHT and $height > MAX_IMAGE_HEIGHT );
-    make_error(S_TOOBIG . ' ('.$errfname.')')
+    return (S_BADFORMAT . ' ('.$errfname.')') unless ( ALLOW_UNKNOWN or $known );
+    return (S_BADFORMAT . ' ('.$errfname.')') if ( grep { $_ eq $ext } FORBIDDEN_EXTENSIONS );
+    return (S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_WIDTH  and $width > MAX_IMAGE_WIDTH );
+    return (S_TOOBIG . ' ('.$errfname.')') if ( MAX_IMAGE_HEIGHT and $height > MAX_IMAGE_HEIGHT );
+    return (S_TOOBIG . ' ('.$errfname.')')
       if ( MAX_IMAGE_PIXELS and $width * $height > MAX_IMAGE_PIXELS );
 
 	# jpeg -> jpg
@@ -2013,7 +2030,7 @@ sub process_file {
     my $filebase  = $time . sprintf("-%03d", int(rand(1000)));
     my $filename  = BOARD_IDENT . '/' . IMG_DIR . $filebase . '.' . $ext;
     my $thumbnail = BOARD_IDENT . '/' . THUMB_DIR . $filebase;
-	if ( $ext eq "png" or $ext eq "svg" )
+	if ( $ext eq "png" )
 	{
 		$thumbnail .= "s.png";
 	}
@@ -2071,7 +2088,7 @@ sub process_file {
     # do thumbnail
     my ( $tn_width, $tn_height, $tn_ext );
 
-    if ( !$width or !$filename =~ /\.svg$/ )    # unsupported file
+    if ( !$width )    # unsupported file
     {
 #        if ( $filetypes{$ext} )                 # externally defined filetype
 #        {
@@ -2092,7 +2109,6 @@ sub process_file {
     elsif ($width > MAX_W
         or $height > MAX_H
         or THUMBNAIL_SMALL
-        or $filename =~ /\.svg$/ # why not check $ext?
 		or $ext eq 'pdf'
 		or $ext eq 'webm'
 		or $ext eq 'mp4')
@@ -2111,7 +2127,7 @@ sub process_file {
             }
         }
 
-		if ($ext eq 'pdf' or $ext eq 'svg') { # cannot determine dimensions for these files
+		if ($ext eq 'pdf') { # cannot determine dimensions
 			undef($width);
 			undef($height);
 			$tn_width = MAX_W;
@@ -2120,7 +2136,7 @@ sub process_file {
 
         if (STUPID_THUMBNAILING) {
 			$thumbnail = $filename;
-			undef($thumbnail) if($ext eq 'pdf' or $ext eq 'svg' or $ext eq 'webm' or $ext eq 'mp4');
+			undef($thumbnail) if ($ext eq 'pdf' or $ext eq 'webm' or $ext eq 'mp4');
 		}
         else {
 			if ($ext eq 'webm' or $ext eq 'mp4') {
@@ -2145,7 +2161,7 @@ sub process_file {
 			}
 
 			# get the thumbnail size created by external program
-			if ($thumbnail and ($ext eq 'pdf' or $ext eq 'svg')) {
+			if ($thumbnail and ($ext eq 'pdf')) {
 				open THUMBNAIL,$thumbnail;
 				binmode THUMBNAIL;
 				($tn_ext, $tn_width, $tn_height) = analyze_image(\*THUMBNAIL, $thumbnail);
@@ -2349,7 +2365,9 @@ sub delete_post {
 				add_log_entry("Delete own files", undef, $post);
 			} else {
 				if (!$password and !$deletebyip) {
-					add_log_entry("System trim " . $posttype, undef, $post, $$row{comment}, $$row{ip});
+					my $logdata = "[created " . make_date($$row{timestamp}, '2ch') . " / lasthit "
+						. make_date($$row{lasthit}, '2ch')  . "] " . $$row{comment};
+					add_log_entry("System trim " . $posttype, undef, $post, $logdata, $$row{ip});
 				} else {
 					add_log_entry("Delete own " . $posttype, undef, $post, $$row{comment}, $$row{ip});
 				}
@@ -2370,7 +2388,9 @@ sub delete_post {
 				$$res{thumbnail} =~ s!.*/!!;
 				# delete images if they exist
 				unlink BOARD_IDENT . '/' . IMG_DIR . $$res{image};
-				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail}; # if ( $$res{thumbnail} =~ /^$thumb/ );
+				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail} if ($$res{thumbnail});
+				# old code to prevent deletion of /icons/*
+				##unlink $$res{thumbnail} if ( $$res{thumbnail} =~ /^$thumb/ );
             }
 
             # remove post and possible replies
@@ -2448,7 +2468,9 @@ sub delete_post {
 				$$res{thumbnail} =~ s!.*/!!;
 				# delete images if they exist
 				unlink BOARD_IDENT . '/' . IMG_DIR . $$res{image};
-				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail}; # if ( $$res{thumbnail} =~ /^$thumb/ );
+				unlink BOARD_IDENT . '/' . THUMB_DIR . $$res{thumbnail} if ($$res{thumbnail});
+				# old code to prevent deletion of /icons/*
+				##unlink $$res{thumbnail} if ( $$res{thumbnail} =~ /^$thumb/ );
             }
 
 			$sth = $dbh->prepare( "UPDATE "
@@ -3203,21 +3225,49 @@ sub delete_all {
 
 	my ($stafftype, $staffid, $staffname) = check_session($admin);
 
+	# TODO: merge SQL queries for post/thread counting and deleting into one section
+
 	unless ($go and $ip) # do not allow empty IP (would delete anonymized (staff) posts)
 	{
 		my ($pcount, $tcount);
 
-		$sth = $dbh->prepare(
-			"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ?;"
-		) or make_error(S_SQLFAIL);
-		$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
-		$pcount = ($sth->fetchrow_array())[0];
+		if (length(pack('w', $ip)) > 5) { # IPv6 counting
+			$pcount = 0;
+			$tcount = 0;
 
-		$sth = $dbh->prepare(
-			"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND parent=0;"
-		) or make_error(S_SQLFAIL);
-		$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
-		$tcount = ($sth->fetchrow_array())[0];
+			my $find_ip = new Net::IP(dec_to_dot($ip)) or make_error(Net::IP::Error());
+			my $mask_len = get_mask_len($mask);
+			my $find_bits = substr($find_ip->binip(), 0, $mask_len);
+
+			# fetch all IPv6 post IDs and IPs from the database
+			$sth = $dbh->prepare(
+				"SELECT num,parent,ip FROM " . SQL_TABLE . " WHERE LENGTH(ip)>10 AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute();
+
+			while ($row = $sth->fetchrow_hashref()) {
+				my $post_ip = new Net::IP(dec_to_dot($$row{ip})) or make_error(Net::IP::Error());
+
+				# compare binary strings of $find_ip and $post_ip up to mask length
+				my $post_bits = substr($post_ip->binip(), 0, $mask_len);
+				if ($find_bits eq $post_bits) {
+					$pcount++;
+					$tcount++ unless ($$row{parent});
+				}
+			}
+		} else { # IPv4 counting
+			$sth = $dbh->prepare(
+				"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
+			$pcount = ($sth->fetchrow_array())[0];
+
+			$sth = $dbh->prepare(
+				"SELECT count(*) FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND parent=0 AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute($mask, $ip, $mask) or make_error(S_SQLFAIL);
+			$tcount = ($sth->fetchrow_array())[0];
+		}
 
 		make_http_header();
 		print encode_string(DELETE_PANEL_TEMPLATE->(
@@ -3231,12 +3281,33 @@ sub delete_all {
 	}
 	else
 	{
-		$sth =
-		  $dbh->prepare( "SELECT num FROM " . SQL_TABLE . " WHERE ip & ? = ? & ?;" )
-		  or make_error(S_SQLFAIL);
-		$sth->execute( $mask, $ip, $mask ) or make_error(S_SQLFAIL);
-		while ( $row = $sth->fetchrow_hashref() ) { push( @posts, $$row{num} ); }
+		if (length(pack('w', $ip)) > 5) { # IPv6 deletions
+			my $find_ip = new Net::IP(dec_to_dot($ip)) or make_error(Net::IP::Error());
+			my $mask_len = get_mask_len($mask);
+			my $find_bits = substr($find_ip->binip(), 0, $mask_len);
 
+			# fetch all IPv6 post IDs and IPs from the database
+			$sth = $dbh->prepare(
+				"SELECT num,parent,ip FROM " . SQL_TABLE . " WHERE LENGTH(ip)>10 AND adminpost=0;"
+			) or make_error(S_SQLFAIL);
+			$sth->execute();
+
+			while ($row = $sth->fetchrow_hashref()) {
+				my $post_ip = new Net::IP(dec_to_dot($$row{ip})) or make_error(Net::IP::Error());
+
+				# compare binary strings of $find_ip and $post_ip up to mask length
+				my $post_bits = substr($post_ip->binip(), 0, $mask_len);
+				if ($find_bits eq $post_bits) {
+					push (@posts, $$row{num});
+				}
+			}
+		} else { # IPv4 deletions
+			$sth =
+			  $dbh->prepare( "SELECT num FROM " . SQL_TABLE . " WHERE ip & ? = ? & ? AND adminpost=0;" )
+			  or make_error(S_SQLFAIL);
+			$sth->execute( $mask, $ip, $mask ) or make_error(S_SQLFAIL);
+			while ( $row = $sth->fetchrow_hashref() ) { push( @posts, $$row{num} ); }
+		}
 		delete_stuff('', 0, $admin, 0, @posts);
 	}
 }
@@ -3515,6 +3586,7 @@ sub parse_range {
 		else                       { $mask = 0xffffffff; }
 	}
 
+	# convert IPv4 and IPv6 addresses to numeric string
     $ip = dot_to_dec($ip) if ( $ip =~ /(^\d+\.\d+\.\d+\.\d+$)|:/ );
 
     return ( $ip, $mask );
