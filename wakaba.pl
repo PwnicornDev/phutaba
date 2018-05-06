@@ -1038,10 +1038,11 @@ sub print_page {
 }
 
 sub dns_request {
-	my ($request, $timeout) = @_;
+	my ($request, $timeout, $ns) = @_;
 
 	my $result;
 	my $resolver = Net::DNS::Resolver->new;
+	$resolver->nameservers($ns) if ($ns);
 	my $bgsock = $resolver->bgsend($request);
 	my $sel = IO::Select->new($bgsock);
 	my @ready = $sel->can_read($timeout);
@@ -1124,15 +1125,14 @@ sub dnsbl_check {
 	}
 
     foreach my $dnsbl_info (@{&DNSBL_INFOS}) {
-        my $dnsbl_host   = @$dnsbl_info[0];
-        my $dnsbl_answer = @$dnsbl_info[1];
-        my $dnsbl_error  = @$dnsbl_info[2]; # error message will not be stored in cache
-		# this is inconsistent with error messages resulting from a cached block error above
+        my $dnsbl_host   = @$dnsbl_info[0]; # host to add for dns query
+        my $dnsbl_answer = @$dnsbl_info[1]; # expected answer if ip was found in block list
+        my $dnsbl_ns     = @$dnsbl_info[2]; # optional dns server to query directly
 
         my $dnsbl_request = join('.', $reverse_ip, $dnsbl_host);
 
 		$t0 = [gettimeofday]; # debug
-        my $result = dns_request($dnsbl_request, DNSBL_TIMEOUT);
+        my $result = dns_request($dnsbl_request, DNSBL_TIMEOUT, $dnsbl_ns);
 		$debug_timings .= sprintf(", BL %.0f ms", tv_interval($t0) * 1000); # debug
 		$debug_timings .= " [timeout]" if ($result eq "timeout"); # debug
 
@@ -1144,7 +1144,7 @@ sub dnsbl_check {
 			) or make_error(S_SQLFAIL);
 			$sth->execute($numip, time(), $host, $dnsbl_host) or make_error(S_SQLFAIL);
 
-			make_ban(S_BADHOSTPROXY, {ip => $ip, showmask => 0, reason => $dnsbl_error});
+			make_ban(S_BADHOSTPROXY, {ip => $ip, showmask => 0, reason => "Tor-Exit-Node"});
 		}
     }
 
@@ -1309,7 +1309,7 @@ sub post_stuff {
     # find IP
     #my $ip  = $ENV{REMOTE_ADDR};
     #my $ip  = substr($ENV{HTTP_X_FORWARDED_FOR}, 6); # :ffff:1.2.3.4
-	my $ip = get_remote_addr();	
+	my $ip = get_remote_addr();
     my $ssl = $ENV{HTTP_X_ALUHUT};
 	$ssl =  $ENV{SSL_CIPHER} unless $ssl;
     undef($ssl) unless $ssl;

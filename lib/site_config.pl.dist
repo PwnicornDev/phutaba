@@ -41,8 +41,8 @@ use constant CAPTCHA_SPACING => 2.5;
 
 use constant DNSBL_TIMEOUT => 0.1;
 use constant DNSBL_INFOS => [
-	['tor.dnsbl.sectoor.de',  '127.0.0.1', 'Tor-Exit-Node laut Auflistung von sectoor.de'],
-	['torexit.dan.me.uk',   '127.0.0.100', 'Tor-Exit-Node laut Auflistung von dan.me.uk'],
+	['tor.dnsbl.sectoor.de',  '127.0.0.1', ''],
+	['torexit.dan.me.uk',   '127.0.0.100', 'ns.dan.me.uk'],
 ];
 
 use constant TRACKING_CODE => qq();			# Paste the js/html of a visitor tracking software between ()
