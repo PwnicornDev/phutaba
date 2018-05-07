@@ -1134,7 +1134,7 @@ sub dnsbl_check {
 		$t0 = [gettimeofday]; # debug
         my $result = dns_request($dnsbl_request, DNSBL_TIMEOUT, $dnsbl_ns);
 		$debug_timings .= sprintf(", BL %.0f ms", tv_interval($t0) * 1000); # debug
-		$debug_timings .= " [timeout]" if ($result eq "timeout"); # debug
+		$debug_timings .= " [" . $result . "]" unless ($result eq "NXDOMAIN"); # debug
 
 		# add block result to cache and deny posting
 		if ($result eq $dnsbl_answer) {
